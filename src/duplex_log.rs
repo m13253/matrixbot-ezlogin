@@ -1,5 +1,5 @@
 use std::borrow::Cow;
-use std::io::Write;
+use std::io::{IsTerminal, Write};
 use std::sync::LazyLock;
 
 use rustyline_async::{Readline, ReadlineError, ReadlineEvent, SharedWriter};
@@ -19,6 +19,9 @@ pub struct DuplexLog {
 
 impl DuplexLog {
     fn init_global() -> Option<DuplexLog> {
+        if !std::io::stdin().is_terminal() {
+            return None;
+        }
         let Ok((readline, shared_writer)) = Readline::new(String::new()) else {
             return None;
         };
