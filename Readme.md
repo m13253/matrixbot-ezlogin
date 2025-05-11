@@ -1,0 +1,83 @@
+matrixbot-ezlogin
+=================
+
+Writing a Matrix bot is easy, but supporting end-to-end encryption is extremely difficult.
+
+Not only because the bot must maintain a database to store encryption keys between sessions, but also the bootstrap process requires a human to interactively type in or copy out the recovery key.
+
+Sadly, [The official Matrix SDK](https://github.com/matrix-org/matrix-rust-sdk) doesn’t provide a complete solution to bootstrap a Matrix bot, resulting in bot developers needing to waste time writing the authentication code again and again.
+
+Here, I publish this library called matrixbot-ezlogin, as a good starting point for every Matrix bot. So, you can skip the trouble and directly hop into the bot logic.
+
+## Running the example
+
+To experience matrixbot-ezlogin, you can try the provided echo-bot example.
+
+1. Create a Matrix account.
+
+   I suggest registering your bot on [a self-hosted Synapse server](https://element-hq.github.io/synapse/latest/setup/installation.html), because you can easily hit the login rate limit if you want to explore all different features.
+
+   To loosen the rate limit of Synapse, use the [`rc_login`](https://element-hq.github.io/synapse/latest/usage/configuration/config_documentation.html#rc_login) option.
+
+   The bot account has to use password authentication. Multi-factor authentication and single sign-on are unsupported, as they can’t function unattended.
+
+2. Run the setup procedure.
+
+   ```
+   $ cargo run --features bundled-sqlite --example echo-bot setup --data /path/to/database
+   Matrix homeserver: <HOMESERVER>
+   User name: <USERNAME>
+   Password: <PASSWORD>
+   ```
+
+   Depending on whether a backup exists on the server, you may be asked:
+   ```
+   Are you ready to reset the cryptographic identity to enable server-side backup (y/n)? y
+   Copy your backup recovery key for safe keeping: [<RECOVERY KEY>], then press ENTER to continue:
+   ```
+   Or:
+   ```
+   Backup recovery key: <RECOVERY KEY>
+   ```
+
+3. Run the bot.
+
+   ```
+   $ cargo run --features bundled-sqlite --example echo-bot run --data /path/to/database
+   ```
+
+   The database path has to match the previous step. If you want to run multiple bots, each one has to use a different database path.
+
+4. Chat with echo-bot.
+
+   Echo-bot responds to every direct message, but not group chats.
+   
+   Send something to echo-bot in a DM, and see if it echoes back.
+
+5. (If anything goes wrong,) reset the cryptographic identity.
+
+   First, delete echo-bot’s database directory.
+
+   Then use a Matrix client, for example, [Element](https://matrix.org/ecosystem/clients/element/), to log into your bot account.
+
+   Go to settings. In the Sessions tab, sign out of all other sessions.
+
+   In the Encryption tab, click “Reset cryptographic identity”.
+
+   After resetting, close and reopen Element. In the Encryption tab, make sure “Allow key storage” is turned off.
+
+   Finally, sign out of Element.
+
+   This should reset E2EE-related data to empty.
+
+## API documentation
+
+Please give me some time.
+
+Let me know if you are planning a project and you need the documentation real soon.
+
+## What about crates.io release?
+
+I don’t feel ready to release yet.
+
+In the meantime, feel free to fork or direcly use the repository URL.
