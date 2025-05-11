@@ -48,6 +48,8 @@ To experience matrixbot-ezlogin, you can try the provided echo-bot example.
 
    The database path has to match the previous step. If you want to run multiple bots, each one has to use a different database path.
 
+   Since matrixbot-ezlogin remembers your authentication, this step requires no human interaction, and can be set to start automatically on computer bootup.
+
 4. Chat with echo-bot.
 
    Echo-bot responds to every direct message, but not group chats.
