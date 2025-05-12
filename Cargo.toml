@@ -17,9 +17,9 @@ include = [
 
 [dependencies]
 color-eyre = "0.6.4"
-matrix-sdk = { version = "*", features = [ "e2e-encryption" ] }  # The same reason as rusqlite.
+matrix-sdk = { version = "0", features = [ "e2e-encryption" ] }  # The same reason as rusqlite.
 rand = "0.9.1"
-rusqlite = "*"  # We have to use the exact same SQLite version as matrix-sdk. Let them decide the version.
+rusqlite = "0"  # We have to use the exact same SQLite version as matrix-sdk. Let them decide the version.
 rustyline-async = "0.4.6"
 scopeguard = "1.2.0"
 serde_json = "1.0.140"
