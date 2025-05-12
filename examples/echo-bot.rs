@@ -304,12 +304,12 @@ async fn on_invite(event: StrippedRoomMemberEvent, room: Room, client: Client) {
     });
 }
 
-#[instrument(skip_all)]
 // https://spec.matrix.org/v1.14/client-server-api/#mroommember
 // Each m.room.member event occurs twice in SyncResponse, one as state event, another as timeline event.
 // As of matrix_sdk-0.11.0, if our handler matches SyncRoomMemberEvent, the event handler will actually be called twice.
 // (Reference: matrix_sdk::Client::call_sync_response_handlers, https://github.com/matrix-org/matrix-rust-sdk/pull/4947)
 // Thankfully, leaving a room twice does not return errors.
+#[instrument(skip_all)]
 async fn on_leave(event: SyncRoomMemberEvent, room: Room) {
     if !matches!(
         event.membership(),
