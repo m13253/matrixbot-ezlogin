@@ -12,7 +12,7 @@ use matrix_sdk::ruma::events::room::member::{
     MembershipState, StrippedRoomMemberEvent, SyncRoomMemberEvent,
 };
 use matrix_sdk::ruma::events::room::message::{
-    MessageType, OriginalSyncRoomMessageEvent, Relation, RoomMessageEventContentWithoutRelation,
+    MessageType, OriginalSyncRoomMessageEvent, Relation,
 };
 use matrix_sdk::ruma::events::sticker::OriginalSyncStickerEvent;
 use matrix_sdk::{Client, Room, RoomState};
