@@ -51,6 +51,10 @@ pub struct SetupConfig<'a, F1, F2, F3> {
     pub before_create_backup: F2,
     /// An `async fn(recovery_key: String) -> Result<(), Report>` that asks the user to keep the recovery key in a safe place.
     ///
+    /// Currently, matrixbot-ezlogin also saves a copy of the recovery key into the `matrixbot-ezlogin.sqlite` database, but it's subject to change.
+    ///
+    /// If you lost your recovery key, you may not be able to set up a new session without resetting the cryptographic identity.
+    ///
     /// Alternatively, you can use [`setup_interactive`](crate::setup_interactive), which provides a built-in implementation.
     pub print_recovery_key: F3,
 }
@@ -235,6 +239,8 @@ where
     }
 
     info!("Saving the recovery key.");
+    // Currently, matrixbot-ezlogin also saves a copy of the recovery key into the `matrixbot-ezlogin.sqlite` database, but it's subject to change.
+    // If you lost your recovery key, you may not be able to set up a new session without resetting the cryptographic identity.
     session_db.execute(
         "INSERT INTO recovery_key (id, key) VALUES (0, ?);",
         (&recovery_key,),
@@ -275,26 +281,12 @@ pub async fn login(data_dir: &Path) -> Result<Client> {
         .optional()?
         // TODO: If anyone needs, transform these ad-hoc errors into named error types.
         .ok_or_eyre("no session found, run setup first")?;
-    let recovery_key: String = session_db
-        .query_row("SELECT key FROM recovery_key WHERE id = 0;", (), |row| {
-            row.get(0)
-        })
-        .optional()?
-        // TODO: If anyone needs, transform these ad-hoc errors into named error types.
-        .ok_or_eyre("no recovery key stored, reset and run setup first")?;
     let matrix_session = serde_json::from_str::<MatrixSession>(&session)?;
 
     info!("Logging into Matrix.");
     let client = build_client(data_dir, &homeserver, &passphrase).await?;
     client
         .restore_session(AuthSession::Matrix(matrix_session))
-        .await?;
-
-    info!("Recovering from the backup.");
-    client
-        .encryption()
-        .recovery()
-        .recover(&recovery_key)
         .await?;
 
     info!("Login finished.");
