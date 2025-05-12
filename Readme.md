@@ -1,6 +1,9 @@
 matrixbot-ezlogin
 =================
 
+[![Download the crate from crates.io](https://img.shields.io/crates/v/matrixbot-ezlogin)](https://crates.io/crates/matrixbot-ezlogin)
+[![Read the documentation on docs.rs](https://img.shields.io/docsrs/matrixbot-ezlogin)](https://docs.rs/matrixbot-ezlogin/latest/matrixbot-ezlogin/)
+
 Writing a Matrix bot is easy, but supporting end-to-end encryption is extremely difficult.
 
 Not only because the bot must maintain a database to store encryption keys between sessions, but also because the bootstrap process requires a human to interactively type in or copy out the recovery key.
@@ -71,3 +74,15 @@ To experience matrixbot-ezlogin, you can try the provided echo-bot example.
    Finally, sign out of Element.
 
    This should clear the E2EE-related data.
+
+## Dependency versions
+
+As the whole application has to link to a single SQLite version, [`Cargo.toml`](Cargo.toml) specifies extremely loose version requirements for the `matrix-sdk` and `rusqlite` crates.
+
+This can avoid version conflicts, but may result in worse forward-compatibility.
+
+Please make sure any upper-layer applications that use matrixbot-ezlogin specify more strict version requirements for the `matrix-sdk` and `rusqlite` crates.
+
+## License
+
+This library is released under [the MIT license](LICENSE).
