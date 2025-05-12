@@ -2,7 +2,7 @@ matrixbot-ezlogin
 =================
 
 [![Download the crate from crates.io](https://img.shields.io/crates/v/matrixbot-ezlogin)](https://crates.io/crates/matrixbot-ezlogin)
-[![Read the documentation on docs.rs](https://img.shields.io/docsrs/matrixbot-ezlogin)](https://docs.rs/matrixbot-ezlogin/latest/matrixbot-ezlogin/)
+[![Read the documentation on docs.rs](https://img.shields.io/docsrs/matrixbot-ezlogin)](https://docs.rs/matrixbot-ezlogin)
 
 Writing a Matrix bot is easy, but supporting end-to-end encryption is extremely difficult.
 
