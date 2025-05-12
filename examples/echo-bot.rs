@@ -177,14 +177,14 @@ async fn on_message(event: OriginalSyncRoomMessageEvent, room: Room, client: Cli
         {
             error!("Failed to send read receipt: {:?}", err);
         }
-        info!("Read receipt for {} sent.", event_id_clone);
+        info!("Sent read receipt for {}.", event_id_clone);
     });
     tokio::spawn(async move {
         info!("Sending reply message for {}.", event.event_id);
         if let Err(err) = room.send(reply).await {
             error!("Failed to send reply message: {:?}", err);
         }
-        info!("Reply message for {} sent.", event.event_id);
+        info!("Sent reply message for {}.", event.event_id);
     });
 }
 
@@ -234,14 +234,14 @@ async fn on_sticker(event: OriginalSyncStickerEvent, room: Room, client: Client)
         {
             error!("Failed to send read receipt: {:?}", err);
         }
-        info!("Read receipt for {} sent.", event_id_clone);
+        info!("Sent read receipt for {}.", event_id_clone);
     });
     tokio::spawn(async move {
-        info!("Sending reply message for {}.", event.event_id);
+        info!("Sending reply sticker for {}.", event.event_id);
         if let Err(err) = room.send(reply).await {
-            error!("Failed to send reply message: {:?}", err);
+            error!("Failed to send reply sticker: {:?}", err);
         }
-        info!("Reply message for {} sent.", event.event_id);
+        info!("Sent reply sticker for {}.", event.event_id);
     });
 }
 
