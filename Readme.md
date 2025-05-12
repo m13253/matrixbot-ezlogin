@@ -81,7 +81,7 @@ As the whole application has to link to a single SQLite version, [`Cargo.toml`](
 
 This can avoid version conflicts, but may result in worse forward-compatibility.
 
-Please make sure any upper-layer applications that use matrixbot-ezlogin specify more strict version requirements for the `matrix-sdk` and `rusqlite` crates.
+Please make sure any upper-layer applications that use matrixbot-ezlogin specify more strict version requirements for the `matrix-sdk` and `rusqlite` crates in their `Cargo.toml` files.
 
 ## License
 
