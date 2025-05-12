@@ -24,7 +24,7 @@ To experience matrixbot-ezlogin, you can try the provided echo-bot example.
 
    The bot account has to use password authentication. Multi-factor authentication and single sign-on are unsupported, as they can’t function unattended.
 
-2. Run the setup procedure.
+2. Perform the setup procedure.
 
    ```
    $ cargo run --features bundled-sqlite --example echo-bot setup --data /path/to/database
