@@ -164,21 +164,32 @@ async fn on_message(event: OriginalSyncRoomMessageEvent, room: Room, client: Cli
     };
 
     let room_clone = room.clone();
+    let event_id_clone = event.event_id.clone();
     tokio::spawn(async move {
+        info!("Sending read receipt for {}.", event_id_clone);
         if let Err(err) = room_clone
-            .send_single_receipt(ReceiptType::Read, ReceiptThread::Unthreaded, event.event_id)
+            .send_single_receipt(
+                ReceiptType::Read,
+                ReceiptThread::Unthreaded,
+                event_id_clone.clone(),
+            )
             .await
         {
             error!("Failed to send read receipt: {:?}", err);
         }
+        info!("Read receipt for {} sent.", event_id_clone);
     });
     tokio::spawn(async move {
+        info!("Sending reply message for {}.", event.event_id);
         if let Err(err) = room.send(reply).await {
-            error!("Failed to send message: {:?}", err);
+            error!("Failed to send reply message: {:?}", err);
         }
+        info!("Reply message for {} sent.", event.event_id);
     });
 }
 
+// Sticker messages aren't of m.room.message types.
+// Basically it means you need to write the logic again with a different type.
 // https://spec.matrix.org/v1.14/client-server-api/#sticker-messages
 #[instrument(skip_all)]
 async fn on_sticker(event: OriginalSyncStickerEvent, room: Room, client: Client) {
@@ -210,18 +221,27 @@ async fn on_sticker(event: OriginalSyncStickerEvent, room: Room, client: Client)
     };
 
     let room_clone = room.clone();
+    let event_id_clone = event.event_id.clone();
     tokio::spawn(async move {
+        info!("Sending read receipt for {}.", event_id_clone);
         if let Err(err) = room_clone
-            .send_single_receipt(ReceiptType::Read, ReceiptThread::Unthreaded, event.event_id)
+            .send_single_receipt(
+                ReceiptType::Read,
+                ReceiptThread::Unthreaded,
+                event_id_clone.clone(),
+            )
             .await
         {
             error!("Failed to send read receipt: {:?}", err);
         }
+        info!("Read receipt for {} sent.", event_id_clone);
     });
     tokio::spawn(async move {
+        info!("Sending reply message for {}.", event.event_id);
         if let Err(err) = room.send(reply).await {
-            error!("Failed to send message: {:?}", err);
+            error!("Failed to send reply message: {:?}", err);
         }
+        info!("Reply message for {} sent.", event.event_id);
     });
 }
 
@@ -237,7 +257,7 @@ async fn on_utd(event: SyncRoomEncryptedEvent, room: Room, client: Client) {
     }
     info!("room = {}, event = {:?}", room.room_id(), event);
 
-    error!("(Unable to decrypt message ID [{}].)", event.event_id());
+    error!("Unable to decrypt message. Event ID: {}", event.event_id());
 }
 
 // https://spec.matrix.org/v1.14/client-server-api/#mroommember
@@ -266,7 +286,7 @@ async fn on_invite(event: StrippedRoomMemberEvent, room: Room, client: Client) {
     tokio::spawn(async move {
         let mut retry = Duration::from_secs(2);
         while retry <= Duration::from_secs(3600) {
-            info!("Trying to join room {}.", room.room_id());
+            info!("Joining room {}.", room.room_id());
             if let Err(err) = room.join().await {
                 // https://github.com/matrix-org/synapse/issues/4345
                 warn!("Failed to join room {}: {:?}", room.room_id(), err);
@@ -305,7 +325,7 @@ async fn on_leave(event: SyncRoomMemberEvent, room: Room) {
             // Only me left
             if room.joined_members_count() <= 1 {
                 tokio::spawn(async move {
-                    info!("Leaving room {}", room.room_id());
+                    info!("Leaving room {}.", room.room_id());
                     if let Err(err) = room.leave().await {
                         error!("Failed to forget room {}: {:?}", room.room_id(), err);
                     }
@@ -315,7 +335,7 @@ async fn on_leave(event: SyncRoomMemberEvent, room: Room) {
         }
         RoomState::Banned | RoomState::Left => {
             tokio::spawn(async move {
-                info!("Forgetting room {}", room.room_id());
+                info!("Forgetting room {}.", room.room_id());
                 if let Err(err) = room.forget().await {
                     error!("Failed to forget room {}: {:?}", room.room_id(), err);
                 }
