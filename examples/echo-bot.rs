@@ -6,10 +6,15 @@ use matrix_sdk::config::SyncSettings;
 use matrix_sdk::ruma::api::client::filter::FilterDefinition;
 use matrix_sdk::ruma::api::client::receipt::create_receipt::v3::ReceiptType;
 use matrix_sdk::ruma::events::receipt::ReceiptThread;
+use matrix_sdk::ruma::events::relation::InReplyTo;
+use matrix_sdk::ruma::events::room::encrypted::SyncRoomEncryptedEvent;
 use matrix_sdk::ruma::events::room::member::{
     MembershipState, StrippedRoomMemberEvent, SyncRoomMemberEvent,
 };
-use matrix_sdk::ruma::events::room::message::{MessageType, OriginalSyncRoomMessageEvent};
+use matrix_sdk::ruma::events::room::message::{
+    MessageType, OriginalSyncRoomMessageEvent, Relation, RoomMessageEventContentWithoutRelation,
+};
+use matrix_sdk::ruma::events::sticker::OriginalSyncStickerEvent;
 use matrix_sdk::{Client, Room, RoomState};
 use matrixbot_ezlogin;
 use tracing::{error, info, instrument, warn};
@@ -106,6 +111,8 @@ async fn run(data_dir: &Path) -> Result<()> {
         .await?;
 
     client.add_event_handler(on_message);
+    client.add_event_handler(on_sticker);
+    client.add_event_handler(on_utd);
 
     info!("Starting sync.");
     sync_helper.sync(&client, sync_settings).await?;
@@ -121,7 +128,7 @@ async fn on_message(event: OriginalSyncRoomMessageEvent, room: Room, client: Cli
         // Ignore my own message
         return;
     }
-    info!("event = {:?}", event);
+    info!("room = {}, event = {:?}", room.room_id(), event);
     if room.state() != RoomState::Joined {
         info!("Ignoring: Current room state is {:?}", room.state());
         return;
@@ -139,6 +146,13 @@ async fn on_message(event: OriginalSyncRoomMessageEvent, room: Room, client: Cli
         info!("Ignoring: Message type is {:?}", event.content.msgtype);
         return;
     }
+
+    let mut reply = event.content.clone();
+    // We should use make_reply_to, but I don't really need to embed the original message.
+    reply.relates_to = Some(Relation::Reply {
+        in_reply_to: InReplyTo::new(event.event_id.to_owned()),
+    });
+
     let room_clone = room.clone();
     tokio::spawn(async move {
         if let Err(err) = room_clone
@@ -149,10 +163,61 @@ async fn on_message(event: OriginalSyncRoomMessageEvent, room: Room, client: Cli
         }
     });
     tokio::spawn(async move {
-        if let Err(err) = room.send(event.content).await {
+        if let Err(err) = room.send(reply).await {
             error!("Failed to send message: {:?}", err);
         }
     });
+}
+
+// https://spec.matrix.org/v1.14/client-server-api/#sticker-messages
+#[instrument(skip_all)]
+async fn on_sticker(event: OriginalSyncStickerEvent, room: Room, client: Client) {
+    let user_id = client.user_id().unwrap();
+    if event.sender == user_id {
+        // Ignore my own message
+        return;
+    }
+    info!("room = {}, event = {:?}", room.room_id(), event);
+    if room.state() != RoomState::Joined {
+        info!("Ignoring: Current room state is {:?}", room.state());
+        return;
+    }
+
+    let mut reply = event.content.clone();
+    // We should use make_reply_to, but I don't really need to embed the original message.
+    reply.relates_to = Some(Relation::Reply {
+        in_reply_to: InReplyTo::new(event.event_id.to_owned()),
+    });
+
+    let room_clone = room.clone();
+    tokio::spawn(async move {
+        if let Err(err) = room_clone
+            .send_single_receipt(ReceiptType::Read, ReceiptThread::Unthreaded, event.event_id)
+            .await
+        {
+            error!("Failed to send read receipt: {:?}", err);
+        }
+    });
+    tokio::spawn(async move {
+        if let Err(err) = room.send(reply).await {
+            error!("Failed to send message: {:?}", err);
+        }
+    });
+}
+
+// I don't know whether UTD events can be caught by this handler.
+// The SDK documentation said nothing about capturing UTDs.
+// Good luck to me.
+#[instrument(skip_all)]
+async fn on_utd(event: SyncRoomEncryptedEvent, room: Room, client: Client) {
+    let user_id = client.user_id().unwrap();
+    if event.sender() == user_id {
+        // Ignore my own message
+        return;
+    }
+    info!("room = {}, event = {:?}", room.room_id(), event);
+
+    error!("(Unable to decrypt message ID [{}].)", event.event_id());
 }
 
 // https://spec.matrix.org/v1.14/client-server-api/#mroommember
@@ -163,7 +228,7 @@ async fn on_invite(event: StrippedRoomMemberEvent, room: Room, client: Client) {
     if event.sender == user_id {
         return;
     }
-    info!("event = {:?}", event);
+    info!("room = {}, event = {:?}", room.room_id(), event);
     // The user for which a membership applies is represented by the state_key.
     if event.state_key != user_id {
         info!("Ignoring: Someone else was invited.");
@@ -213,7 +278,7 @@ async fn on_leave(event: SyncRoomMemberEvent, room: Room) {
     ) {
         return;
     }
-    info!("event = {:?}", event);
+    info!("room = {}, event = {:?}", room.room_id(), event);
 
     match room.state() {
         RoomState::Joined => {
