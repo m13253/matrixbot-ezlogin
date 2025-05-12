@@ -8,7 +8,12 @@ repository = "https://github.com/m13253/matrixbot-ezlogin"
 license = "MIT"
 keywords = ["matrix", "matrix-chat", "chat", "messaging", "ruma"]
 categories = ["network-programming", "authentication"]
-publish = false  # Wait until I am ready to release.
+include = [
+    "examples/**.rs",
+    "src/**.rs",
+    "Cargo.toml",
+    "LICENSE",
+]
 
 [dependencies]
 color-eyre = "0.6.4"
