@@ -61,7 +61,7 @@ use super::connect_sqlite;
 ///        client.sync_with_result_callback(sync_settings, |response| {
 ///            let sync_helper_clone = sync_helper.clone();
 ///            async move {
-///                sync_helper_clone.process_sync_response(&response?.next_batch)
+///                sync_helper_clone.process_sync_response(&response?)
 ///            }
 ///        });
 ///
@@ -155,9 +155,14 @@ impl SyncHelper {
         sync_settings
     }
 
-    /// Convenience method that calls [`SyncHelper::set_sync_token`] to save a [`SyncResponse::next_batch`].
-    pub fn process_sync_response(&self, next_batch: &str) -> Result<LoopCtrl, matrix_sdk::Error> {
-        self.set_sync_token(next_batch.to_owned())
+    /// Convenience method that calls [`SyncHelper::set_sync_token`] using a [`SyncResponse`].
+    ///
+    /// On success, it returns [`Ok(LoopCtrl::Continue)`](LoopCtrl::Continue) for your convenience.
+    pub fn process_sync_response(
+        &self,
+        sync_response: &SyncResponse,
+    ) -> Result<LoopCtrl, matrix_sdk::Error> {
+        self.set_sync_token(sync_response.next_batch.clone())
             .map_err(|err| matrix_sdk::Error::UnknownError(err.into()))?;
         Ok(LoopCtrl::Continue)
     }
@@ -184,7 +189,7 @@ impl SyncHelper {
             // sync_stream is infinite
             .unwrap()?;
         trace!("Sync response: {:?}", response);
-        self.process_sync_response(&response.next_batch)?;
+        self.process_sync_response(&response)?;
         Ok(response)
     }
 
@@ -207,7 +212,7 @@ impl SyncHelper {
                 // sync_stream is infinite
                 .unwrap()?;
             trace!("Sync response: {:?}", response);
-            self.process_sync_response(&response.next_batch)?;
+            self.process_sync_response(&response)?;
         }
     }
 }
