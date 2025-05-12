@@ -207,7 +207,7 @@ where
         if let Some(reset_handle) = recovery.reset_identity().await? {
             match reset_handle.auth_type() {
                 CrossSigningResetAuthType::Uiaa(uiaa) => {
-                    info!("Setting up cross-signing. (Stage 2: UIAA)");
+                    info!("Resetting cryptography identity. (Stage 2: UIAA)");
                     let mut auth_data = uiaa::Password::new(
                         client
                             .user_id()
