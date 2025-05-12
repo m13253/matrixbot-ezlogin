@@ -6,7 +6,7 @@ use matrix_sdk::config::SyncSettings;
 use matrix_sdk::ruma::api::client::filter::FilterDefinition;
 use matrix_sdk::ruma::api::client::receipt::create_receipt::v3::ReceiptType;
 use matrix_sdk::ruma::events::receipt::ReceiptThread;
-use matrix_sdk::ruma::events::relation::InReplyTo;
+use matrix_sdk::ruma::events::relation::{InReplyTo, Thread};
 use matrix_sdk::ruma::events::room::encrypted::SyncRoomEncryptedEvent;
 use matrix_sdk::ruma::events::room::member::{
     MembershipState, StrippedRoomMemberEvent, SyncRoomMemberEvent,
@@ -148,10 +148,20 @@ async fn on_message(event: OriginalSyncRoomMessageEvent, room: Room, client: Cli
     }
 
     let mut reply = event.content.clone();
-    // We should use make_reply_to, but I don't really need to embed the original message.
-    reply.relates_to = Some(Relation::Reply {
-        in_reply_to: InReplyTo::new(event.event_id.to_owned()),
-    });
+    // We should use make_reply_to, but I don't really want to decode the original message to embed.
+    reply.relates_to = match reply.relates_to {
+        Some(Relation::Replacement(_)) => {
+            info!("This event is an edit operation. Do not reply.");
+            return;
+        }
+        Some(Relation::Thread(thread)) => Some(Relation::Thread(Thread::reply(
+            thread.event_id,
+            event.event_id.to_owned(),
+        ))),
+        _ => Some(Relation::Reply {
+            in_reply_to: InReplyTo::new(event.event_id.to_owned()),
+        }),
+    };
 
     let room_clone = room.clone();
     tokio::spawn(async move {
@@ -184,10 +194,20 @@ async fn on_sticker(event: OriginalSyncStickerEvent, room: Room, client: Client)
     }
 
     let mut reply = event.content.clone();
-    // We should use make_reply_to, but I don't really need to embed the original message.
-    reply.relates_to = Some(Relation::Reply {
-        in_reply_to: InReplyTo::new(event.event_id.to_owned()),
-    });
+    // We should use make_reply_to, but I don't really want to decode the original message to embed.
+    reply.relates_to = match reply.relates_to {
+        Some(Relation::Replacement(_)) => {
+            info!("This event is an edit operation. Do not reply.");
+            return;
+        }
+        Some(Relation::Thread(thread)) => Some(Relation::Thread(Thread::reply(
+            thread.event_id,
+            event.event_id.to_owned(),
+        ))),
+        _ => Some(Relation::Reply {
+            in_reply_to: InReplyTo::new(event.event_id.to_owned()),
+        }),
+    };
 
     let room_clone = room.clone();
     tokio::spawn(async move {
