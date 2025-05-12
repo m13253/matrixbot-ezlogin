@@ -148,7 +148,7 @@ async fn on_message(event: OriginalSyncRoomMessageEvent, room: Room, client: Cli
     }
 
     let mut reply = event.content.clone();
-    // We should use make_reply_to, but I don't really want to decode the original message to embed.
+    // We should use make_reply_to, but I don't really want to decode the original message to embed it.
     reply.relates_to = match reply.relates_to {
         Some(Relation::Replacement(_)) => {
             info!("This event is an edit operation. Do not reply.");
@@ -205,7 +205,7 @@ async fn on_sticker(event: OriginalSyncStickerEvent, room: Room, client: Client)
     }
 
     let mut reply = event.content.clone();
-    // We should use make_reply_to, but I don't really want to decode the original message to embed.
+    // We should use make_reply_to, but I don't really want to decode the original message to embed it.
     reply.relates_to = match reply.relates_to {
         Some(Relation::Replacement(_)) => {
             info!("This event is an edit operation. Do not reply.");
@@ -321,7 +321,7 @@ async fn on_leave(event: SyncRoomMemberEvent, room: Room) {
 
     match room.state() {
         RoomState::Joined => {
-            // Only me left
+            // Only I remain in the room.
             if room.joined_members_count() <= 1 {
                 tokio::spawn(async move {
                     info!("Leaving room {}.", room.room_id());
@@ -333,6 +333,7 @@ async fn on_leave(event: SyncRoomMemberEvent, room: Room) {
             }
         }
         RoomState::Banned | RoomState::Left => {
+            // Either I successfully left the room, or someone kicked me out.
             tokio::spawn(async move {
                 info!("Forgetting room {}.", room.room_id());
                 if let Err(err) = room.forget().await {
