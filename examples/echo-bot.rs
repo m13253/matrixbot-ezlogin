@@ -53,7 +53,6 @@ enum Command {
 #[tokio::main]
 async fn main() -> Result<()> {
     color_eyre::install()?;
-    // This init() function may generate trace output. To prevent deadlock, call it before tracing_subscriber is set up.
     matrixbot_ezlogin::DuplexLog::init();
     tracing_subscriber::registry()
         .with(tracing_error::ErrorLayer::default())

@@ -14,15 +14,44 @@ use tracing::{info, instrument};
 
 use super::connect_sqlite;
 
+/// Information to set up a Matrix bot using [`setup`].
 #[derive(Clone)]
 pub struct SetupConfig<'a, F1, F2, F3> {
+    /// A directory to store the bot's state database.
+    ///
+    /// Later [`login`] calls need to use the same directory.
+    ///
+    /// One directory can only store one session.
     pub data_dir: &'a Path,
+    /// The Matrix homeserver.
+    ///
+    /// Supports server name (`matrix.org`), or base URL (`https://matrix-client.matrix.org`).
     pub homeserver: &'a str,
+    /// The user name.
+    ///
+    /// Supports localpart `example` or full ID (`@example:matrix.org`).
     pub username: &'a str,
+    /// The password.
+    ///
+    /// matrixbot-ezlogin does not support multi-factor authentication or single sign-on, as bots are designed to run unattended.
     pub password: &'a str,
+    /// Any descriptive text to distinguish this session with other sessions logged in at different locations.
     pub device_name: &'a str,
+    /// An `async` block that asks the user to supply a recovery key and returns [`Result<String, Report>`](Result).
+    ///
+    /// Alternatively, you can use [`setup_interactive`](crate::setup_interactive), which provides a built-in implementation.
     pub ask_recovery_key: F1,
+    /// An `async` block that asks the user to confirm before creating a backup and returns [`Result<(), Report>`](Result).
+    ///
+    /// Creating the initial backup also resets the account's cryptographic identity.
+    ///
+    /// If it returns [`Result::Err`], the setup process will be aborted and no backups will be created.
+    ///
+    /// Alternatively, you can use [`setup_interactive`](crate::setup_interactive), which provides a built-in implementation.
     pub before_create_backup: F2,
+    /// An `async fn(recovery_key: String) -> Result<(), Report>` that asks the user to keep the recovery key in a safe place.
+    ///
+    /// Alternatively, you can use [`setup_interactive`](crate::setup_interactive), which provides a built-in implementation.
     pub print_recovery_key: F3,
 }
 
@@ -48,6 +77,11 @@ async fn build_client(data_dir: &Path, homeserver: &str, passphrase: &str) -> Re
     Ok(client_builder.build().await?)
 }
 
+/// Set up a Matrix bot account by providing credentials through a `SetupConfig`.
+///
+/// It creates a new session, saves it for later [`login`] use, then exits.
+///
+/// Alternatively, [`setup_interactive`](crate::setup_interactive) provides an interactive version.
 #[instrument(skip_all)]
 pub async fn setup<F1, F2, F3, R3>(config: SetupConfig<'_, F1, F2, F3>) -> Result<Client>
 where
@@ -131,8 +165,10 @@ where
     info!("Saving the Matrix session.");
     let session = client
         .session()
+        // TODO: If anyone needs, transform these ad-hoc errors into named error types.
         .ok_or_eyre("Matrix SDK did not return a session")?;
     let AuthSession::Matrix(matrix_session) = session else {
+        // TODO: If anyone needs, transform these ad-hoc errors into named error types.
         bail!("Matrix SDK returned an unsupported session type");
     };
     let session_json = serde_json::to_string(&matrix_session)?;
@@ -152,12 +188,13 @@ where
         info!("A backup exists on the server, recovering from it.");
         recovery_key = config.ask_recovery_key.await?;
         recovery.recover(&recovery_key).await?;
+        encryption.wait_for_e2ee_initialization_tasks().await;
         info!("Recovered from the server backup.");
     } else {
         // What if at this specific moment, another client also wants to create a backup?
         // This is rarely an issue with human users, but can be problematic for bots with sharded backends.
         // As the code in the SDK doesn't deal with this race condition, we can do nothing here.
-        // If that happens, maybe we will have to forcefully reset the backup.
+        // If that happens, maybe the user just needs to forcefully reset the cryptographic identity and rerun the setup.
 
         info!("No backup exists on the server, creating a new one.");
         config.before_create_backup.await?;
@@ -170,6 +207,7 @@ where
                     let mut auth_data = uiaa::Password::new(
                         client
                             .user_id()
+                            // TODO: If anyone needs, transform these ad-hoc errors into named error types.
                             .ok_or_eyre("failed to get user ID")?
                             .to_owned()
                             .into(),
@@ -208,6 +246,17 @@ where
     Ok(())
 }
 
+/// Log in and restore a Matrix session from a state database saved by [`setup`] or [`setup_interactive`](crate::setup_interactive).
+///
+/// # Arguments
+///
+/// * `data_dir`, The directory containing the bot's state database.
+///
+///   It must be already initialized by a successful [`setup`] or [`setup_interactive`](crate::setup_interactive) call.
+///
+///   Only one process can use a directory at the same time.
+///
+///   If you need to connect two processes to the same Matrix account, run [`setup`] or [`setup_interactive`](crate::setup_interactive) using two different `data_dir`.
 #[instrument(skip_all)]
 pub async fn login(data_dir: &Path) -> Result<Client> {
     let session_db = connect_sqlite(
@@ -224,12 +273,14 @@ pub async fn login(data_dir: &Path) -> Result<Client> {
             |row| row.try_into(),
         )
         .optional()?
+        // TODO: If anyone needs, transform these ad-hoc errors into named error types.
         .ok_or_eyre("no session found, run setup first")?;
     let recovery_key: String = session_db
         .query_row("SELECT key FROM recovery_key WHERE id = 0;", (), |row| {
             row.get(0)
         })
         .optional()?
+        // TODO: If anyone needs, transform these ad-hoc errors into named error types.
         .ok_or_eyre("no recovery key stored, reset and run setup first")?;
     let matrix_session = serde_json::from_str::<MatrixSession>(&session)?;
 

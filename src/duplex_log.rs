@@ -9,6 +9,38 @@ use tokio::sync::{mpsc, oneshot};
 
 static DUPLEX_LOG: LazyLock<Option<DuplexLog>> = LazyLock::new(DuplexLog::init_global);
 
+/// Provides a way to handle terminal input while also allowing other parts of the application to log messages.
+///
+/// Internally, it starts a background task that uses [`rustyline_async`] to handle all the input/output.
+///
+/// # Example
+///
+/// ```
+/// use matrixbot_ezlogin::DuplexLog;
+/// use tracing_subscriber::{EnvFilter, prelude::*};
+///
+/// #[tokio::main]
+/// async fn main() {
+///     DuplexLog::init();
+///     tracing_subscriber::registry()
+///         .with(tracing_error::ErrorLayer::default())
+///         .with({
+///             let mut filter = EnvFilter::new("warn,matrixbot_ezlogin=debug");
+///             if let Some(env) = std::env::var_os(EnvFilter::DEFAULT_ENV) {
+///                 for segment in env.to_string_lossy().split(',') {
+///                     if let Ok(directive) = segment.parse() {
+///                         filter = filter.add_directive(directive);
+///                     }
+///                 }
+///             }
+///             filter
+///         })
+///         .with(tracing_subscriber::fmt::layer().with_writer(DuplexLog::get_writer))
+///         .init();
+///
+///     todo!()
+/// }
+/// ```
 pub struct DuplexLog {
     request_tx: mpsc::Sender<(
         Cow<'static, str>,
@@ -33,10 +65,17 @@ impl DuplexLog {
         })
     }
 
+    /// Initializes the global instance.
+    ///
+    /// This function should be called early in the application's lifecycle before `tracing_subscriber` is set up.
+    /// This is to prevent deadlock, because third-party libraries that [`DuplexLog::init`] depends on can generate traces.
     pub fn init() {
         LazyLock::force(&DUPLEX_LOG);
     }
 
+    /// Asynchronously reads a line of input from the terminal with the given prompt.
+    ///
+    /// It returns [`UnexpectedEof`](std::io::ErrorKind::UnexpectedEof) if [`stdin`](std::io::stdin) is not a TTY.
     pub async fn readline<S>(prompt: S) -> Result<String, std::io::Error>
     where
         S: Into<Cow<'static, str>>,
@@ -48,10 +87,15 @@ impl DuplexLog {
         inst.request_tx
             .send((prompt.into(), response_tx))
             .await
+            // run_background_task should run forever
             .unwrap();
-        response_rx.await.unwrap()
+        response_rx
+            .await
+            // run_background_task always sends a response
+            .unwrap()
     }
 
+    /// Gets a writer that can be used to print messages to the terminal without interfering with the [`DuplexLog::readline`] prompt.
     pub fn get_writer() -> Box<dyn Write> {
         let Some(inst) = DUPLEX_LOG.as_ref() else {
             return Box::new(std::io::stdout());
@@ -74,17 +118,13 @@ impl DuplexLog {
         while running {
             select! {
                 req = request_rx.recv() => {
-                    let (prompt, response_tx) = req.unwrap();
+                    let Some((prompt, response_tx)) = req else {
+                        continue;
+                    };
                     _ = readline.update_prompt(&prompt);
                     pending_response_tx = Some(response_tx);
                 }
                 line = readline.readline() => {
-                    let Some(resp_tx) = pending_response_tx.take() else {
-                        if let Ok(ReadlineEvent::Interrupted) = line {
-                            running = false;
-                        }
-                        continue;
-                    };
                     let resp = match line {
                         Ok(ReadlineEvent::Line(s)) => Ok(s),
                         Ok(ReadlineEvent::Eof) => Err(std::io::Error::from(std::io::ErrorKind::UnexpectedEof)),
@@ -93,10 +133,16 @@ impl DuplexLog {
                             Err(std::io::Error::from(std::io::ErrorKind::Interrupted))
                         },
                         Err(ReadlineError::IO(err)) => Err(err),
-                        Err(ReadlineError::Closed) => panic!(),
+                        Err(ReadlineError::Closed) => {
+                            // DUPLEX_LOG.shared_writer has static lifetime
+                            unreachable!()
+                        }
+                    };
+                    let Some(response_tx) = pending_response_tx.take() else {
+                        continue;
                     };
                     _ = readline.update_prompt("");
-                    _ = resp_tx.send(resp);
+                    _ = response_tx.send(resp);
                 }
             }
         }

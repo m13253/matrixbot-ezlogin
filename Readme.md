@@ -3,9 +3,9 @@ matrixbot-ezlogin
 
 Writing a Matrix bot is easy, but supporting end-to-end encryption is extremely difficult.
 
-Not only because the bot must maintain a database to store encryption keys between sessions, but also the bootstrap process requires a human to interactively type in or copy out the recovery key.
+Not only because the bot must maintain a database to store encryption keys between sessions, but also because the bootstrap process requires a human to interactively type in or copy out the recovery key.
 
-Sadly, [The official Matrix SDK](https://github.com/matrix-org/matrix-rust-sdk) doesn’t provide a complete solution to bootstrap a Matrix bot, resulting in bot developers needing to waste time writing the authentication code again and again.
+Sadly, [the official Matrix SDK](https://github.com/matrix-org/matrix-rust-sdk) doesn’t provide a complete solution to bootstrap a Matrix bot, resulting in bot developers needing to waste time writing the authentication code again and again.
 
 Here, I publish this library called matrixbot-ezlogin, as a good starting point for every Matrix bot. So, you can skip the trouble and directly hop into the bot logic.
 
@@ -53,7 +53,7 @@ To experience matrixbot-ezlogin, you can try the provided echo-bot example.
 4. Chat with echo-bot.
 
    Echo-bot responds to every direct message, but not group chats.
-   
+
    Send something to echo-bot in a DM, and see if it echoes back.
 
 5. (If anything goes wrong,) reset the cryptographic identity.
@@ -70,16 +70,10 @@ To experience matrixbot-ezlogin, you can try the provided echo-bot example.
 
    Finally, sign out of Element.
 
-   This should reset E2EE-related data to empty.
-
-## API documentation
-
-Please give me some time.
-
-Let me know if you are planning a project and you need the documentation real soon.
+   This should clear the E2EE-related data.
 
 ## What about crates.io release?
 
 I don’t feel ready to release yet.
 
-In the meantime, feel free to fork or direcly use the repository URL.
+In the meantime, feel free to fork or directly use the repository URL.

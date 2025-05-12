@@ -6,6 +6,19 @@ use tracing::instrument;
 
 use crate::{DuplexLog, SetupConfig, setup};
 
+/// Set up a Matrix bot account by asking credentials through the terminal interactively.
+///
+/// It creates a new session, saves it for later [`login`](crate::login) use, then exits.
+///
+/// # Arguments
+///
+/// * `data_dir`: A directory to store the bot's state database.
+///
+///   Later [`login`](crate::login) calls need to use the same directory.
+///
+///   One directory can only store one session.
+///
+/// * `device_name`: Any descriptive text to distinguish this session with other sessions logged in at different locations.
 #[instrument(skip_all)]
 pub async fn setup_interactive(data_dir: &Path, device_name: &str) -> Result<Client> {
     let homeserver = DuplexLog::readline("Matrix homeserver: ").await?;
