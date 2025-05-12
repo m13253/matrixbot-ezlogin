@@ -90,6 +90,7 @@ async fn run(data_dir: &Path) -> Result<()> {
     let client = matrixbot_ezlogin::login(data_dir).await?;
     let sync_helper = matrixbot_ezlogin::SyncHelper::new(data_dir)?;
 
+    // We don't ignore joining and leaving events happened during downtime.
     client.add_event_handler(on_invite);
     client.add_event_handler(on_leave);
 
@@ -99,7 +100,7 @@ async fn run(data_dir: &Path) -> Result<()> {
     let sync_settings =
         SyncSettings::default().filter(FilterDefinition::with_lazy_loading().into());
 
-    info!("Skipping events since last logout.");
+    info!("Skipping messages since last logout.");
     sync_helper
         .sync_once(&client, sync_settings.clone())
         .await?;
