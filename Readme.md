@@ -71,9 +71,3 @@ To experience matrixbot-ezlogin, you can try the provided echo-bot example.
    Finally, sign out of Element.
 
    This should clear the E2EE-related data.
-
-## What about crates.io release?
-
-I don’t feel ready to release yet.
-
-In the meantime, feel free to fork or directly use the repository URL.
