@@ -8,7 +8,7 @@ use matrix_sdk::config::SyncSettings;
 use matrix_sdk::sync::SyncResponse;
 use rusqlite::{OpenFlags, OptionalExtension};
 use tokio_stream::StreamExt;
-use tracing::instrument;
+use tracing::{debug, instrument, trace};
 
 use super::connect_sqlite;
 
@@ -50,10 +50,13 @@ impl SyncHelper {
     }
 
     pub fn get_sync_token(&self) -> Option<String> {
-        self.inner.read().unwrap().sync_token.clone()
+        let token = self.inner.read().unwrap().sync_token.clone();
+        debug!("Current sync token: {}", token.as_deref().unwrap_or("None"));
+        token
     }
 
     pub fn set_sync_token(&self, token: String) -> Result<()> {
+        debug!("Next sync token: {}", token);
         let mut inner = self.inner.write().unwrap();
         inner.session_db.execute(
             "INSERT OR REPLACE INTO sync_token (id, token) VALUES (0, ?);",
@@ -85,6 +88,7 @@ impl SyncHelper {
             .await;
         tokio::pin!(sync_stream);
         let response = sync_stream.next().await.unwrap()?;
+        trace!("Sync response: {:?}", response);
         self.process_sync_response(&response.next_batch)?;
         Ok(response)
     }
@@ -100,6 +104,7 @@ impl SyncHelper {
         tokio::pin!(sync_stream);
         loop {
             let response = sync_stream.next().await.unwrap()?;
+            trace!("Sync response: {:?}", response);
             self.process_sync_response(&response.next_batch)?;
         }
     }

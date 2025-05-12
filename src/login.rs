@@ -94,9 +94,9 @@ COMMIT;",
     ] {
         _ = tokio::fs::remove_file(&config.data_dir.join(file_name)).await;
     }
-    let client: Client = build_client(config.data_dir, config.homeserver, &db_passphrase).await?;
 
     info!("Logging into Matrix.");
+    let client: Client = build_client(config.data_dir, config.homeserver, &db_passphrase).await?;
     client
         .matrix_auth()
         .login_username(config.username, config.password)
@@ -233,9 +233,8 @@ pub async fn login(data_dir: &Path) -> Result<Client> {
         .ok_or_eyre("no recovery key stored, reset and run setup first")?;
     let matrix_session = serde_json::from_str::<MatrixSession>(&session)?;
 
-    let client = build_client(data_dir, &homeserver, &passphrase).await?;
-
     info!("Logging into Matrix.");
+    let client = build_client(data_dir, &homeserver, &passphrase).await?;
     client
         .restore_session(AuthSession::Matrix(matrix_session))
         .await?;

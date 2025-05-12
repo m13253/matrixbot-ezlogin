@@ -33,6 +33,10 @@ impl DuplexLog {
         })
     }
 
+    pub fn init() {
+        LazyLock::force(&DUPLEX_LOG);
+    }
+
     pub async fn readline<S>(prompt: S) -> Result<String, std::io::Error>
     where
         S: Into<Cow<'static, str>>,
