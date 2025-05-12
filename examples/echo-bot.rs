@@ -245,9 +245,8 @@ async fn on_sticker(event: OriginalSyncStickerEvent, room: Room, client: Client)
     });
 }
 
-// I don't know whether UTD events can be caught by this handler.
-// The SDK documentation said nothing about capturing UTDs.
-// Good luck to me.
+// The SDK documentation said nothing about how to catch unable-to-decrypt (UTD) events.
+// But it seems this handler can capture them.
 #[instrument(skip_all)]
 async fn on_utd(event: SyncRoomEncryptedEvent, room: Room, client: Client) {
     let user_id = client.user_id().unwrap();
