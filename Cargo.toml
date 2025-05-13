@@ -1,6 +1,6 @@
 [package]
 name = "matrixbot-ezlogin"
-version = "0.1.2"
+version = "0.1.3"
 edition = "2024"
 description = "I wrote the login and E2EE bootstrap code for Matrix bots so you don’t have to."
 readme = "Readme.md"
