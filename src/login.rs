@@ -81,6 +81,12 @@ async fn build_client(data_dir: &Path, homeserver: &str, passphrase: &str) -> Re
     Ok(client_builder.build().await?)
 }
 
+macro_rules! delete_data_file {
+    ($data_dir:expr, $($file:expr),* $(,)?) => {
+        _ = tokio::join!($(tokio::fs::remove_file($data_dir.join($file))),*);
+    };
+}
+
 /// Set up a Matrix bot account by providing credentials through a `SetupConfig`.
 ///
 /// It creates a new session, saves it for later [`login`] use, then exits.
@@ -125,13 +131,21 @@ COMMIT;",
         .take(32)
         .map(char::from)
         .collect::<String>();
-    for file_name in [
+    delete_data_file!(
+        &config.data_dir,
         "matrix-sdk-crypto.sqlite3",
+        "matrix-sdk-crypto.sqlite3-journal",
+        "matrix-sdk-crypto.sqlite3-shm",
+        "matrix-sdk-crypto.sqlite3-wal",
         "matrix-sdk-event-cache.sqlite3",
+        "matrix-sdk-event-cache.sqlite3-journal",
+        "matrix-sdk-event-cache.sqlite3-shm",
+        "matrix-sdk-event-cache.sqlite3-wal",
         "matrix-sdk-state.sqlite3",
-    ] {
-        _ = tokio::fs::remove_file(&config.data_dir.join(file_name)).await;
-    }
+        "matrix-sdk-state.sqlite3-journal",
+        "matrix-sdk-state.sqlite3-shm",
+        "matrix-sdk-state.sqlite3-wal",
+    );
 
     info!("Logging into Matrix.");
     let client: Client = build_client(config.data_dir, config.homeserver, &db_passphrase).await?;
@@ -291,4 +305,41 @@ pub async fn login(data_dir: &Path) -> Result<Client> {
 
     info!("Login finished.");
     Ok(client)
+}
+
+/// Log out a Matrix session and delete the state database.
+///
+/// # Arguments
+///
+/// * `data_dir`, The directory containing the bot's state database.
+///
+///   It must be already initialized by a successful [`setup`] or [`setup_interactive`](crate::setup_interactive) call.
+#[instrument(skip_all)]
+pub async fn logout(data_dir: &Path) -> Result<()> {
+    let client = login(data_dir).await?;
+    info!("Logging out.");
+    client.logout().await?;
+    drop(client);
+    info!("Deleting the data files");
+    delete_data_file!(
+        data_dir,
+        "matrix-sdk-crypto.sqlite3",
+        "matrix-sdk-crypto.sqlite3-journal",
+        "matrix-sdk-crypto.sqlite3-shm",
+        "matrix-sdk-crypto.sqlite3-wal",
+        "matrix-sdk-event-cache.sqlite3",
+        "matrix-sdk-event-cache.sqlite3-journal",
+        "matrix-sdk-event-cache.sqlite3-shm",
+        "matrix-sdk-event-cache.sqlite3-wal",
+        "matrix-sdk-state.sqlite3",
+        "matrix-sdk-state.sqlite3-journal",
+        "matrix-sdk-state.sqlite3-shm",
+        "matrix-sdk-state.sqlite3-wal",
+        "matrixbot-ezlogin.sqlite3",
+        "matrixbot-ezlogin.sqlite3-journal",
+        "matrixbot-ezlogin.sqlite3-shm",
+        "matrixbot-ezlogin.sqlite3-wal",
+    );
+    info!("Logout finished.");
+    Ok(())
 }

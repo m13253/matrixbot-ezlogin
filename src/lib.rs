@@ -38,15 +38,15 @@ mod sync;
 
 pub use duplex_log::DuplexLog;
 pub use interactive::setup_interactive;
-pub use login::SetupConfig;
-pub use login::login;
-pub use login::setup;
+pub use login::{SetupConfig, login, logout, setup};
 pub use sync::SyncHelper;
 
 static PRINT_SQLITE_VERSION_ONCE: Once = Once::new();
 
 fn connect_sqlite(path: &Path, flags: OpenFlags) -> Result<rusqlite::Connection> {
     let conn = rusqlite::Connection::open_with_flags(path, flags)?;
+
+    _ = conn.execute_batch("PRAGMA journal_mode=WAL;")?;
 
     let version: String = conn
         .query_row("SELECT sqlite_version();", (), |row| row.get(0))

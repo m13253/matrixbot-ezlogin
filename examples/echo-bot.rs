@@ -16,7 +16,6 @@ use matrix_sdk::ruma::events::room::message::{
 };
 use matrix_sdk::ruma::events::sticker::OriginalSyncStickerEvent;
 use matrix_sdk::{Client, Room, RoomState};
-use matrixbot_ezlogin;
 use tracing::{error, info, instrument, warn};
 use tracing_subscriber::{EnvFilter, prelude::*};
 
@@ -49,7 +48,16 @@ enum Command {
         #[clap(
             long = "data",
             value_name = "PATH",
-            help = "Path to store Matrix data between sessions"
+            help = "Path to an existing Matrix session"
+        )]
+        data_dir: PathBuf,
+    },
+    #[clap(about = "Log out of the Matrix session, and delete the state database")]
+    Logout {
+        #[clap(
+            long = "data",
+            value_name = "PATH",
+            help = "Path to an existing Matrix session"
         )]
         data_dir: PathBuf,
     },
@@ -83,12 +91,11 @@ async fn main() -> Result<()> {
         Command::Setup {
             data_dir,
             device_name,
-        } => {
-            matrixbot_ezlogin::setup_interactive(&data_dir, &device_name).await?;
-            Ok(())
-        }
-        Command::Run { data_dir } => run(&data_dir).await,
-    }
+        } => drop(matrixbot_ezlogin::setup_interactive(&data_dir, &device_name).await?),
+        Command::Run { data_dir } => run(&data_dir).await?,
+        Command::Logout { data_dir } => matrixbot_ezlogin::logout(&data_dir).await?,
+    };
+    Ok(())
 }
 
 async fn run(data_dir: &Path) -> Result<()> {
