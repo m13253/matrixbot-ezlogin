@@ -3,9 +3,9 @@ use std::time::Duration;
 
 use color_eyre::eyre::Result;
 use matrix_sdk::config::SyncSettings;
+use matrix_sdk::room::Receipts;
+use matrix_sdk::ruma::OwnedEventId;
 use matrix_sdk::ruma::api::client::filter::FilterDefinition;
-use matrix_sdk::ruma::api::client::receipt::create_receipt::v3::ReceiptType;
-use matrix_sdk::ruma::events::receipt::ReceiptThread;
 use matrix_sdk::ruma::events::relation::{InReplyTo, Thread};
 use matrix_sdk::ruma::events::room::encrypted::SyncRoomEncryptedEvent;
 use matrix_sdk::ruma::events::room::member::{
@@ -125,15 +125,36 @@ async fn run(data_dir: &Path) -> Result<()> {
     Ok(())
 }
 
+#[instrument(skip_all)]
+fn set_read_marker(room: Room, event_id: OwnedEventId) {
+    tokio::spawn(async move {
+        if let Err(err) = room
+            .send_multiple_receipts(
+                Receipts::new()
+                    .fully_read_marker(event_id.clone())
+                    .public_read_receipt(event_id.clone()),
+            )
+            .await
+        {
+            error!(
+                "Failed to set the read marker of room {} to event {}: {:?}",
+                room.room_id(),
+                event_id,
+                err
+            );
+        }
+    });
+}
+
 // https://spec.matrix.org/v1.14/client-server-api/#mroommessage
 #[instrument(skip_all)]
 async fn on_message(event: OriginalSyncRoomMessageEvent, room: Room, client: Client) {
-    let user_id = client.user_id().unwrap();
-    if event.sender == user_id {
+    if event.sender == client.user_id().unwrap() {
         // Ignore my own message
         return;
     }
     info!("room = {}, event = {:?}", room.room_id(), event);
+    set_read_marker(room.clone(), event.event_id.clone());
     if room.state() != RoomState::Joined {
         info!("Ignoring: Current room state is {:?}", room.state());
         return;
@@ -175,22 +196,6 @@ async fn on_message(event: OriginalSyncRoomMessageEvent, room: Room, client: Cli
         }),
     };
 
-    let room_clone = room.clone();
-    let event_id_clone = event.event_id.clone();
-    tokio::spawn(async move {
-        info!("Sending a read receipt for {}.", event_id_clone);
-        if let Err(err) = room_clone
-            .send_single_receipt(
-                ReceiptType::FullyRead,
-                ReceiptThread::Unthreaded,
-                event_id_clone.clone(),
-            )
-            .await
-        {
-            error!("Failed to send a read receipt: {:?}", err);
-        }
-        info!("Sent a read receipt for {}.", event_id_clone);
-    });
     tokio::spawn(async move {
         info!("Sending a reply message for {}.", event.event_id);
         if let Err(err) = room.send(reply).await {
@@ -205,12 +210,12 @@ async fn on_message(event: OriginalSyncRoomMessageEvent, room: Room, client: Cli
 // https://spec.matrix.org/v1.14/client-server-api/#sticker-messages
 #[instrument(skip_all)]
 async fn on_sticker(event: OriginalSyncStickerEvent, room: Room, client: Client) {
-    let user_id = client.user_id().unwrap();
-    if event.sender == user_id {
+    if event.sender == client.user_id().unwrap() {
         // Ignore my own message
         return;
     }
     info!("room = {}, event = {:?}", room.room_id(), event);
+    set_read_marker(room.clone(), event.event_id.clone());
     if room.state() != RoomState::Joined {
         info!("Ignoring: Current room state is {:?}", room.state());
         return;
@@ -232,22 +237,6 @@ async fn on_sticker(event: OriginalSyncStickerEvent, room: Room, client: Client)
         }),
     };
 
-    let room_clone = room.clone();
-    let event_id_clone = event.event_id.clone();
-    tokio::spawn(async move {
-        info!("Sending a read receipt for {}.", event_id_clone);
-        if let Err(err) = room_clone
-            .send_single_receipt(
-                ReceiptType::FullyRead,
-                ReceiptThread::Unthreaded,
-                event_id_clone.clone(),
-            )
-            .await
-        {
-            error!("Failed to send a read receipt: {:?}", err);
-        }
-        info!("Sent a read receipt for {}.", event_id_clone);
-    });
     tokio::spawn(async move {
         info!("Sending a reply sticker for {}.", event.event_id);
         if let Err(err) = room.send(reply).await {
@@ -260,15 +249,10 @@ async fn on_sticker(event: OriginalSyncStickerEvent, room: Room, client: Client)
 // The SDK documentation said nothing about how to catch unable-to-decrypt (UTD) events.
 // But it seems this handler can capture them.
 #[instrument(skip_all)]
-async fn on_utd(event: SyncRoomEncryptedEvent, room: Room, client: Client) {
-    let user_id = client.user_id().unwrap();
-    if event.sender() == user_id {
-        // Ignore my own message
-        return;
-    }
+async fn on_utd(event: SyncRoomEncryptedEvent, room: Room) {
     info!("room = {}, event = {:?}", room.room_id(), event);
-
     error!("Unable to decrypt message {}", event.event_id());
+    set_read_marker(room, event.event_id().to_owned());
 }
 
 // https://spec.matrix.org/v1.14/client-server-api/#mroommember
