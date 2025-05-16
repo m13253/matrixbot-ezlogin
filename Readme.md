@@ -40,7 +40,7 @@ To experience matrixbot-ezlogin, you can try the provided echo-bot example.
    Or:
    ```
    Are you ready to reset the cryptographic identity to enable server-side backup (y/n)? y
-   Move <DATA PATH>/recovery-key.txt to a safe place, then press ENTER to continue:
+   Please move <DATA PATH>/recovery-key.txt to a safe place, then press ENTER to continue:
    ```
 
 3. Run the bot.
