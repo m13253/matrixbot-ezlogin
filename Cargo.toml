@@ -17,26 +17,26 @@ include = [
 
 [dependencies]
 color-eyre = "0.6.4"
-matrix-sdk = { version = "0", features = [ "e2e-encryption" ] }  # The same reason as rusqlite.
+matrix-sdk = { version = "0", features = ["e2e-encryption"] }  # The same reason as rusqlite.
 rand = "0.9.1"
 rusqlite = "0"  # We have to use the exact same SQLite version as matrix-sdk. Let them decide the version.
 rustyline-async = "0.4.6"
 scopeguard = "1.2.0"
 serde_json = "1.0.140"
-tokio = { version = "1.45.0", features = [ "fs", "sync", "rt" ] }
+tokio = { version = "1.45.0", features = ["fs", "sync", "rt"] }
 tokio-stream = "0.1.17"
 tracing = "0.1.41"
 version-compare = "0.2.0"
 
 [dev-dependencies]
-clap = { version = "4.5.38", features = [ "derive" ] }
-matrix-sdk = { version = "0.11.0", features = [ "e2e-encryption" ] }
-tokio = { version = "1.45.0", features = [ "full" ] }
+clap = { version = "4.5.38", features = ["derive"] }
+matrix-sdk = { version = "0.11.0", features = ["e2e-encryption"] }
+tokio = { version = "1.45.0", features = ["full"] }
 tracing-error = "0.2.1"
-tracing-subscriber = { version = "0.3.19", features = [ "env-filter" ] }
+tracing-subscriber = { version = "0.3.19", features = ["env-filter"] }
 
 [features]
-bundled-sqlite = [ "matrix-sdk/bundled-sqlite", "rusqlite/bundled" ]
+bundled-sqlite = ["matrix-sdk/bundled-sqlite", "rusqlite/bundled"]
 
 [lib]
 name = "matrixbot_ezlogin"
