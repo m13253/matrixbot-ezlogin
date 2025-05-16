@@ -197,11 +197,11 @@ async fn on_message(event: OriginalSyncRoomMessageEvent, room: Room, client: Cli
     };
 
     tokio::spawn(async move {
-        info!("Sending a reply message for {}.", event.event_id);
+        info!("Sending a reply message to {}.", event.event_id);
         match room.send(reply).await {
-            Ok(_) => info!("Sent a reply message for {}.", event.event_id),
+            Ok(_) => info!("Sent a reply message to {}.", event.event_id),
             Err(err) => error!(
-                "Failed to send a reply message for {}: {:?}",
+                "Failed to send a reply message to {}: {:?}",
                 event.event_id, err
             ),
         }
@@ -241,11 +241,11 @@ async fn on_sticker(event: OriginalSyncStickerEvent, room: Room, client: Client)
     };
 
     tokio::spawn(async move {
-        info!("Sending a reply sticker for {}.", event.event_id);
+        info!("Sending a reply sticker to {}.", event.event_id);
         match room.send(reply).await {
-            Ok(_) => info!("Sent a reply sticker for {}.", event.event_id),
+            Ok(_) => info!("Sent a reply sticker to {}.", event.event_id),
             Err(err) => error!(
-                "Failed to send a reply sticker for {}: {:?}",
+                "Failed to send a reply sticker to {}: {:?}",
                 event.event_id, err
             ),
         }
