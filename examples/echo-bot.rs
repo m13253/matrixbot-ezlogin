@@ -156,7 +156,7 @@ async fn on_message(event: OriginalSyncRoomMessageEvent, room: Room, client: Cli
     info!("room = {}, event = {:?}", room.room_id(), event);
     set_read_marker(room.clone(), event.event_id.clone());
     if room.state() != RoomState::Joined {
-        info!("Ignoring: Current room state is {:?}", room.state());
+        info!("Ignoring: Current room state is {:?}.", room.state());
         return;
     }
     if !matches!(
@@ -169,7 +169,7 @@ async fn on_message(event: OriginalSyncRoomMessageEvent, room: Room, client: Cli
             | MessageType::Text(_)
             | MessageType::Video(_)
     ) {
-        info!("Ignoring: Message type is {:?}", event.content.msgtype);
+        info!("Ignoring: Message type is {:?}.", event.content.msgtype);
         return;
     }
 
@@ -220,7 +220,7 @@ async fn on_sticker(event: OriginalSyncStickerEvent, room: Room, client: Client)
     info!("room = {}, event = {:?}", room.room_id(), event);
     set_read_marker(room.clone(), event.event_id.clone());
     if room.state() != RoomState::Joined {
-        info!("Ignoring: Current room state is {:?}", room.state());
+        info!("Ignoring: Current room state is {:?}.", room.state());
         return;
     }
 
@@ -280,7 +280,7 @@ async fn on_invite(event: StrippedRoomMemberEvent, room: Room, client: Client) {
         return;
     }
     if room.state() != RoomState::Invited {
-        info!("Ignoring: Current room state is {:?}", room.state());
+        info!("Ignoring: Current room state is {:?}.", room.state());
         return;
     }
 
