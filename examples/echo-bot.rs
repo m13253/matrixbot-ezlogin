@@ -328,16 +328,19 @@ async fn on_leave(event: SyncRoomMemberEvent, room: Room) {
 
     match room.state() {
         RoomState::Joined => {
-            // Only I remain in the room.
-            if room.joined_members_count() <= 1 {
-                tokio::spawn(async move {
+            tokio::spawn(async move {
+                if let Err(err) = room.sync_members().await {
+                    warn!("Failed to sync members of {}: {:?}", room.room_id(), err);
+                }
+                // Only I remain in the room.
+                if room.joined_members_count() <= 1 {
                     info!("Leaving room {}.", room.room_id());
                     match room.leave().await {
                         Ok(_) => info!("Left room {}.", room.room_id()),
                         Err(err) => error!("Failed to leave room {}: {:?}", room.room_id(), err),
                     }
-                });
-            }
+                }
+            });
         }
         RoomState::Banned | RoomState::Left => {
             // Either I successfully left the room, or someone kicked me out.
