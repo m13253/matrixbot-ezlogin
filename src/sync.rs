@@ -6,17 +6,23 @@ use color_eyre::eyre::Result;
 use matrix_sdk::config::SyncSettings;
 use matrix_sdk::sync::SyncResponse;
 use matrix_sdk::{Client, LoopCtrl};
-use rusqlite::{OpenFlags, OptionalExtension};
+use rusqlite::OptionalExtension;
 use tokio_stream::StreamExt;
 use tracing::{debug, instrument, trace};
 
-use super::connect_sqlite;
+use crate::db::SQLiteHelper;
 
 /// Helps you maintain sync positions between process restarts.
 ///
 /// This allows you to distinguish events that occurred while the bot was offline from those that happened after it restarted.
 ///
 /// It maintains a `sync_token` in the state database.
+///
+/// # Important
+///
+/// The state database is exclusively locked for the entire lifetime of this [`SyncHelper`], in order to prevent multiple processes from accessing the same Matrix session.
+///
+/// # Example
 ///
 /// You can:
 /// * Either manually pass the token between [`SyncHelper`] and [`Client::sync`], like this:
@@ -32,8 +38,12 @@ use super::connect_sqlite;
 ///
 ///    #[tokio::main]
 ///    async fn main() -> Result<()> {
-///        let client = matrixbot_ezlogin::login(Path::new("./bot_store")).await?;
-///        let sync_helper = SyncHelper::new(Path::new("./bot_store"))?;
+///        let (client, sync_helper) = matrixbot_ezlogin::login(Path::new("./TODO")).await?;
+///        // SyncHelper can also be used independently
+///        let sync_helper = SyncHelper::new(Path::new("./TODO"))?;
+///
+///        // Install your bot logic handlers
+///        todo!();
 ///
 ///        // Loading sync_token
 ///        let sync_token = sync_helper.get_sync_token();
@@ -65,7 +75,7 @@ use super::connect_sqlite;
 ///            }
 ///        });
 ///
-///        todo!()
+///        Ok(())
 ///    }
 ///    ```
 ///
@@ -79,42 +89,37 @@ pub struct SyncHelper {
 
 #[derive(Debug)]
 struct SyncHelperInner {
-    session_db: rusqlite::Connection,
+    session_db: SQLiteHelper,
     sync_token: Option<String>,
 }
 
 impl SyncHelper {
-    /// Creates a new [`SyncHelper`].
+    /// Creates a new [`SyncHelper`] to use it independently from [`login`](crate::login).
     ///
-    /// The state database is exclusively locked for the entire lifetime of this [`SyncHelper`].
-    ///
-    /// Therefore, please run [`SyncHelper::new`] after [`login`](crate::login).
+    /// # Arguments
     ///
     /// * `data_dir`: The directory containing the bot's state database.
     ///
     ///   It must be the same as specified in [`login`](crate::login).
     #[instrument(name = "SyncHelper", skip_all)]
     pub fn new(data_dir: &Path) -> Result<Self> {
-        let mut result = SyncHelperInner {
-            session_db: connect_sqlite(
-                &data_dir.join("matrixbot-ezlogin.sqlite3"),
-                OpenFlags::SQLITE_OPEN_READ_WRITE
-                    | OpenFlags::SQLITE_OPEN_NO_MUTEX
-                    | OpenFlags::SQLITE_OPEN_URI,
-            )?,
-            sync_token: None,
-        };
-        result
-            .session_db
-            .execute_batch("PRAGMA locking_mode = EXCLUSIVE;")?;
-        result.sync_token = result
-            .session_db
+        Self::from_opened_db(SQLiteHelper::open(
+            &data_dir.join("matrixbot-ezlogin.sqlite3"),
+            false,
+        )?)
+    }
+
+    pub(crate) fn from_opened_db(session_db: SQLiteHelper) -> Result<Self> {
+        let sync_token = session_db
             .query_row("SELECT token FROM sync_token WHERE id = 0;", (), |row| {
                 row.get(0)
             })
             .optional()?;
         Ok(Self {
-            inner: Arc::new(RwLock::new(result)),
+            inner: Arc::new(RwLock::new(SyncHelperInner {
+                session_db,
+                sync_token,
+            })),
         })
     }
 
@@ -214,11 +219,5 @@ impl SyncHelper {
             trace!("Sync response: {:?}", response);
             self.process_sync_response(&response)?;
         }
-    }
-}
-
-impl Drop for SyncHelperInner {
-    fn drop(&mut self) {
-        _ = self.session_db.execute("PRAGMA optimize;", ());
     }
 }

@@ -42,9 +42,13 @@ pub async fn setup_interactive(data_dir: &Path, device_name: &str) -> Result<Cli
                 bail!("backup canceled by user")
             }
         },
-        print_recovery_key: async |recovery_key: String| {
+        print_recovery_key: async |mut recovery_key: String, _new_backup: bool| {
+            let recovery_key_path = data_dir.join("recovery-key.txt");
+            recovery_key.push('\n');
+            tokio::fs::write(&recovery_key_path, &recovery_key).await?;
             _ = DuplexLog::readline(format!(
-                "Copy your backup recovery key for safe keeping: [{recovery_key}], then press ENTER to continue: "
+                "Please move {} to a safe place, then press ENTER to continue: ",
+                recovery_key_path.as_os_str().to_string_lossy()
             ))
             .await;
             Ok(())

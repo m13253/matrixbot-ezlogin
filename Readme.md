@@ -27,7 +27,7 @@ To experience matrixbot-ezlogin, you can try the provided echo-bot example.
 2. Perform the setup procedure.
 
    ```
-   $ cargo run --features bundled-sqlite --example echo-bot setup --data /path/to/database
+   $ cargo run --example=echo-bot setup --data=/path/to/database
    Matrix homeserver: <HOMESERVER>
    User name: <USERNAME>
    Password: <PASSWORD>
@@ -35,18 +35,18 @@ To experience matrixbot-ezlogin, you can try the provided echo-bot example.
 
    Depending on whether a backup exists on the server, you may be asked:
    ```
-   Are you ready to reset the cryptographic identity to enable server-side backup (y/n)? y
-   Copy your backup recovery key for safe keeping: [<RECOVERY KEY>], then press ENTER to continue:
+   Backup recovery key: <RECOVERY KEY>
    ```
    Or:
    ```
-   Backup recovery key: <RECOVERY KEY>
+   Are you ready to reset the cryptographic identity to enable server-side backup (y/n)? y
+   Move <DATA PATH>/recovery-key.txt to a safe place, then press ENTER to continue:
    ```
 
 3. Run the bot.
 
    ```
-   $ cargo run --features bundled-sqlite --example echo-bot run --data /path/to/database
+   $ cargo run --example=echo-bot run --data=/path/to/database
    ```
 
    The database path has to match the previous step. If you want to run multiple bots, each one has to use a different database path.

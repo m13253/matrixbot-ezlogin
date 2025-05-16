@@ -12,7 +12,7 @@ use matrix_sdk::ruma::events::room::member::{
     MembershipState, StrippedRoomMemberEvent, SyncRoomMemberEvent,
 };
 use matrix_sdk::ruma::events::room::message::{
-    MessageType, OriginalSyncRoomMessageEvent, Relation,
+    MessageType, NoticeMessageEventContent, OriginalSyncRoomMessageEvent, Relation,
 };
 use matrix_sdk::ruma::events::sticker::OriginalSyncStickerEvent;
 use matrix_sdk::{Client, Room, RoomState};
@@ -99,16 +99,14 @@ async fn main() -> Result<()> {
 }
 
 async fn run(data_dir: &Path) -> Result<()> {
-    let client = matrixbot_ezlogin::login(data_dir).await?;
-    let sync_helper = matrixbot_ezlogin::SyncHelper::new(data_dir)?;
+    let (client, sync_helper) = matrixbot_ezlogin::login(data_dir).await?;
 
     // We don't ignore joining and leaving events happened during downtime.
     client.add_event_handler(on_invite);
     client.add_event_handler(on_leave);
 
-    // Enable room members lazy-loading, it will speed up the initial sync a lot
-    // with accounts in lots of rooms.
-    // See <https://spec.matrix.org/v1.6/client-server-api/#lazy-loading-room-members>.
+    // Enable room members lazy-loading, it will speed up the initial sync a lot with accounts in lots of rooms.
+    // https://spec.matrix.org/v1.6/client-server-api/#lazy-loading-room-members
     let sync_settings =
         SyncSettings::default().filter(FilterDefinition::with_lazy_loading().into());
 
@@ -154,8 +152,15 @@ async fn on_message(event: OriginalSyncRoomMessageEvent, room: Room, client: Cli
         return;
     }
 
-    let mut reply = event.content.clone();
-    // We should use make_reply_to, but I don't really want to decode the original message to embed it.
+    let mut reply = event.content;
+    // Transform m.text into m.notice. Some bot implementations are designed to ignore m.notice, preventing infinite looping.
+    // Note that some clients may choose to render m.notice in a different text color.
+    if let MessageType::Text(text) = reply.msgtype {
+        let mut notice = NoticeMessageEventContent::plain(text.body);
+        notice.formatted = text.formatted;
+        reply.msgtype = MessageType::Notice(notice);
+    }
+    // We should use make_reply_to, but it embeds the original message body, which I don't want
     reply.relates_to = match reply.relates_to {
         Some(Relation::Replacement(_)) => {
             info!("This event is an edit operation. Do not reply.");
@@ -173,25 +178,25 @@ async fn on_message(event: OriginalSyncRoomMessageEvent, room: Room, client: Cli
     let room_clone = room.clone();
     let event_id_clone = event.event_id.clone();
     tokio::spawn(async move {
-        info!("Sending read receipt for {}.", event_id_clone);
+        info!("Sending a read receipt for {}.", event_id_clone);
         if let Err(err) = room_clone
             .send_single_receipt(
-                ReceiptType::Read,
+                ReceiptType::FullyRead,
                 ReceiptThread::Unthreaded,
                 event_id_clone.clone(),
             )
             .await
         {
-            error!("Failed to send read receipt: {:?}", err);
+            error!("Failed to send a read receipt: {:?}", err);
         }
-        info!("Sent read receipt for {}.", event_id_clone);
+        info!("Sent a read receipt for {}.", event_id_clone);
     });
     tokio::spawn(async move {
-        info!("Sending reply message for {}.", event.event_id);
+        info!("Sending a reply message for {}.", event.event_id);
         if let Err(err) = room.send(reply).await {
-            error!("Failed to send reply message: {:?}", err);
+            error!("Failed to send a reply message: {:?}", err);
         }
-        info!("Sent reply message for {}.", event.event_id);
+        info!("Sent a reply message for {}.", event.event_id);
     });
 }
 
@@ -212,7 +217,7 @@ async fn on_sticker(event: OriginalSyncStickerEvent, room: Room, client: Client)
     }
 
     let mut reply = event.content.clone();
-    // We should use make_reply_to, but I don't really want to decode the original message to embed it.
+    // We should use make_reply_to, but it embeds the original message body, which I don't want
     reply.relates_to = match reply.relates_to {
         Some(Relation::Replacement(_)) => {
             info!("This event is an edit operation. Do not reply.");
@@ -230,25 +235,25 @@ async fn on_sticker(event: OriginalSyncStickerEvent, room: Room, client: Client)
     let room_clone = room.clone();
     let event_id_clone = event.event_id.clone();
     tokio::spawn(async move {
-        info!("Sending read receipt for {}.", event_id_clone);
+        info!("Sending a read receipt for {}.", event_id_clone);
         if let Err(err) = room_clone
             .send_single_receipt(
-                ReceiptType::Read,
+                ReceiptType::FullyRead,
                 ReceiptThread::Unthreaded,
                 event_id_clone.clone(),
             )
             .await
         {
-            error!("Failed to send read receipt: {:?}", err);
+            error!("Failed to send a read receipt: {:?}", err);
         }
-        info!("Sent read receipt for {}.", event_id_clone);
+        info!("Sent a read receipt for {}.", event_id_clone);
     });
     tokio::spawn(async move {
-        info!("Sending reply sticker for {}.", event.event_id);
+        info!("Sending a reply sticker for {}.", event.event_id);
         if let Err(err) = room.send(reply).await {
-            error!("Failed to send reply sticker: {:?}", err);
+            error!("Failed to send a reply sticker: {:?}", err);
         }
-        info!("Sent reply sticker for {}.", event.event_id);
+        info!("Sent a reply sticker for {}.", event.event_id);
     });
 }
 
@@ -263,7 +268,7 @@ async fn on_utd(event: SyncRoomEncryptedEvent, room: Room, client: Client) {
     }
     info!("room = {}, event = {:?}", room.room_id(), event);
 
-    error!("Unable to decrypt message. Event ID: {}", event.event_id());
+    error!("Unable to decrypt message {}", event.event_id());
 }
 
 // https://spec.matrix.org/v1.14/client-server-api/#mroommember
