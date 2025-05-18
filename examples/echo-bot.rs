@@ -70,6 +70,7 @@ async fn main() -> Result<()> {
     tracing_subscriber::registry()
         .with(tracing_error::ErrorLayer::default())
         .with({
+            // If you use this echo-bot as a template of your new bot, remember to change "echo_bot=debug" to your crate name.
             let mut filter = EnvFilter::new("warn,echo_bot=debug,matrixbot_ezlogin=debug");
             if let Some(env) = std::env::var_os(EnvFilter::DEFAULT_ENV) {
                 for segment in env.to_string_lossy().split(',') {
@@ -159,6 +160,10 @@ async fn on_message(event: OriginalSyncRoomMessageEvent, room: Room, client: Cli
         info!("Ignoring: Current room state is {:?}.", room.state());
         return;
     }
+    if let Some(Relation::Replacement(_)) = event.content.relates_to {
+        info!("Ignoring: This event is an edit operation.");
+        return;
+    }
     if !matches!(
         event.content.msgtype,
         MessageType::Audio(_)
@@ -183,10 +188,7 @@ async fn on_message(event: OriginalSyncRoomMessageEvent, room: Room, client: Cli
     }
     // We should use make_reply_to, but it embeds the original message body, which I don't want
     reply.relates_to = match reply.relates_to {
-        Some(Relation::Replacement(_)) => {
-            info!("This event is an edit operation. Do not reply.");
-            return;
-        }
+        Some(Relation::Replacement(_)) => unreachable!(),
         Some(Relation::Thread(thread)) => Some(Relation::Thread(Thread::reply(
             thread.event_id,
             event.event_id.to_owned(),
@@ -210,6 +212,7 @@ async fn on_message(event: OriginalSyncRoomMessageEvent, room: Room, client: Cli
 
 // Sticker messages aren't of m.room.message types.
 // Basically it means you need to write the logic again with a different type.
+//
 // https://spec.matrix.org/v1.14/client-server-api/#sticker-messages
 #[instrument(skip_all)]
 async fn on_sticker(event: OriginalSyncStickerEvent, room: Room, client: Client) {
@@ -223,14 +226,15 @@ async fn on_sticker(event: OriginalSyncStickerEvent, room: Room, client: Client)
         info!("Ignoring: Current room state is {:?}.", room.state());
         return;
     }
+    if let Some(Relation::Replacement(_)) = event.content.relates_to {
+        info!("Ignoring: This event is an edit operation.");
+        return;
+    }
 
     let mut reply = event.content;
     // We should use make_reply_to, but it embeds the original message body, which I don't want
     reply.relates_to = match reply.relates_to {
-        Some(Relation::Replacement(_)) => {
-            info!("This event is an edit operation. Do not reply.");
-            return;
-        }
+        Some(Relation::Replacement(_)) => unreachable!(),
         Some(Relation::Thread(thread)) => Some(Relation::Thread(Thread::reply(
             thread.event_id,
             event.event_id.to_owned(),
@@ -254,13 +258,16 @@ async fn on_sticker(event: OriginalSyncStickerEvent, room: Room, client: Client)
 
 // The SDK documentation said nothing about how to catch unable-to-decrypt (UTD) events.
 // But it seems this handler can capture them.
+//
+// https://spec.matrix.org/v1.14/client-server-api/#mroomencrypted
 #[instrument(skip_all)]
 async fn on_utd(event: SyncRoomEncryptedEvent, room: Room) {
     info!("room = {}, event = {:?}", room.room_id(), event);
     error!("Unable to decrypt message {}.", event.event_id());
-    set_read_marker(room, event.event_id().to_owned());
 }
 
+// Whenever someone invites me to a room, join if it is a direct chat.
+//
 // https://spec.matrix.org/v1.14/client-server-api/#mroommember
 // https://spec.matrix.org/v1.14/client-server-api/#stripped-state
 #[instrument(skip_all)]
@@ -311,9 +318,12 @@ async fn on_invite(event: StrippedRoomMemberEvent, room: Room, client: Client) {
     });
 }
 
+// Whenever someone leaves a room, check whether I am the last remaining member.
+// If so, leave the room, then forget the empty room from the account data.
+//
 // https://spec.matrix.org/v1.14/client-server-api/#mroommember
 // Each m.room.member event occurs twice in SyncResponse, one as state event, another as timeline event.
-// As of matrix_sdk-0.11.0, if our handler matches SyncRoomMemberEvent, the event handler will actually be called twice.
+// As of matrix_sdk-0.11.0, this event handler matching SyncRoomMemberEvent is actually called twice whenever such an event happens.
 // (Reference: matrix_sdk::Client::call_sync_response_handlers, https://github.com/matrix-org/matrix-rust-sdk/pull/4947)
 // Thankfully, leaving a room twice does not return errors.
 #[instrument(skip_all)]
