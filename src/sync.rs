@@ -144,10 +144,10 @@ impl SyncHelper {
             .write()
             // read() will only return an error after some other task panicked
             .unwrap();
-        inner.session_db.execute(
-            "INSERT OR REPLACE INTO sync_token (id, token) VALUES (0, ?);",
-            (&token,),
-        )?;
+        inner
+            .session_db
+            .prepare_cached("INSERT OR REPLACE INTO sync_token (id, token) VALUES (0, ?);")?
+            .execute((&token,))?;
         inner.sync_token = Some(token);
         Ok(())
     }
