@@ -25,9 +25,9 @@
 //! The `examples` folder contains a simple echo-bot for you to experience the feature of matrixbot-ezlogin, and serves as a good starting point to develop a new Matrix bot.
 
 mod auth;
+mod db;
 mod duplex_log;
 mod interactive;
-mod db;
 mod sync;
 
 pub use auth::{SetupConfig, login, logout, setup};
