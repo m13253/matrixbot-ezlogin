@@ -70,8 +70,11 @@ async fn main() -> Result<()> {
     tracing_subscriber::registry()
         .with(tracing_error::ErrorLayer::default())
         .with({
-            // If you use this echo-bot as a template of your new bot, remember to change "echo_bot=debug" to your crate name.
-            let mut filter = EnvFilter::new("warn,echo_bot=debug,matrixbot_ezlogin=debug");
+            let mut filter = EnvFilter::new(concat!(
+                "warn,",
+                env!("CARGO_CRATE_NAME"),
+                "=debug,matrixbot_ezlogin=debug"
+            ));
             if let Some(env) = std::env::var_os(EnvFilter::DEFAULT_ENV) {
                 for segment in env.to_string_lossy().split(',') {
                     if let Ok(directive) = segment.parse() {
