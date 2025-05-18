@@ -177,7 +177,7 @@ async fn on_message(event: OriginalSyncRoomMessageEvent, room: Room, client: Cli
             | MessageType::Text(_)
             | MessageType::Video(_)
     ) {
-        info!("Ignoring: Message type is {:?}.", event.content.msgtype);
+        info!("Ignoring: Message type is {}.", event.content.msgtype());
         return;
     }
 
