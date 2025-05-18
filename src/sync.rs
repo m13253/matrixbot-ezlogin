@@ -1,6 +1,6 @@
 use std::path::Path;
 use std::sync::Arc;
-use std::sync::RwLock;
+use std::sync::Mutex;
 
 use color_eyre::eyre::Result;
 use matrix_sdk::config::SyncSettings;
@@ -84,7 +84,7 @@ use crate::db::SQLiteHelper;
 /// * Or, you can also mix and match the easy and hard ways in an application.
 #[derive(Clone, Debug)]
 pub struct SyncHelper {
-    inner: Arc<RwLock<SyncHelperInner>>,
+    inner: Arc<Mutex<SyncHelperInner>>,
 }
 
 #[derive(Debug)]
@@ -116,7 +116,7 @@ impl SyncHelper {
             })
             .optional()?;
         Ok(Self {
-            inner: Arc::new(RwLock::new(SyncHelperInner {
+            inner: Arc::new(Mutex::new(SyncHelperInner {
                 session_db,
                 sync_token,
             })),
@@ -127,8 +127,8 @@ impl SyncHelper {
     pub fn get_sync_token(&self) -> Option<String> {
         let token = self
             .inner
-            .read()
-            // read() will only return an error after some other task panicked
+            .lock()
+            // lock() will only return an error after some other task panicked
             .unwrap()
             .sync_token
             .clone();
@@ -141,8 +141,8 @@ impl SyncHelper {
         debug!("Next sync token: {}", token);
         let mut inner = self
             .inner
-            .write()
-            // read() will only return an error after some other task panicked
+            .lock()
+            // lock() will only return an error after some other task panicked
             .unwrap();
         inner
             .session_db
