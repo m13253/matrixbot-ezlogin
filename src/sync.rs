@@ -2,12 +2,13 @@ use std::path::Path;
 use std::sync::Arc;
 use std::sync::Mutex;
 
+use async_stream::try_stream;
 use eyre::Result;
 use matrix_sdk::config::SyncSettings;
 use matrix_sdk::sync::SyncResponse;
 use matrix_sdk::{Client, LoopCtrl};
 use rusqlite::OptionalExtension;
-use tokio_stream::StreamExt;
+use tokio_stream::{Stream, StreamExt};
 use tracing::{debug, instrument, trace};
 
 use crate::db::SQLiteHelper;
@@ -196,6 +197,32 @@ impl SyncHelper {
         trace!("Sync response: {:?}", response);
         self.process_sync_response(&response)?;
         Ok(response)
+    }
+
+    /// Convenience method that calls [`SyncHelper::process_sync_settings`], [`matrix_sdk::Client::sync_once`], then [`SyncHelper::process_sync_response`] in an infinite loop.
+    ///
+    /// Internally, it actually calls [`matrix_sdk::Client::sync_stream`] to let it manage retry logic.
+    pub async fn sync_stream(
+        &self,
+        client: &Client,
+        sync_settings: SyncSettings,
+    ) -> impl Stream<Item = Result<SyncResponse, matrix_sdk::Error>> {
+        let sync_stream = client
+            .sync_stream(self.process_sync_settings(sync_settings))
+            .await;
+        try_stream! {
+            tokio::pin!(sync_stream);
+            loop {
+                let response = sync_stream
+                    .next()
+                    .await
+                    // sync_stream is infinite
+                    .unwrap()?;
+                trace!("Sync response: {:?}", response);
+                self.process_sync_response(&response)?;
+                yield response;
+            }
+        }
     }
 
     /// Convenience method that calls [`SyncHelper::process_sync_settings`], [`matrix_sdk::Client::sync_once`], then [`SyncHelper::process_sync_response`] in an infinite loop.

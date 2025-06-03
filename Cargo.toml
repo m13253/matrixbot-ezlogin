@@ -1,6 +1,6 @@
 [package]
 name = "matrixbot-ezlogin"
-version = "0.3.0"
+version = "0.3.1"
 edition = "2024"
 description = "I wrote the login and E2EE bootstrap code for Matrix bots so you don’t have to."
 readme = "Readme.md"
@@ -16,6 +16,7 @@ include = [
 ]
 
 [dependencies]
+async-stream = "0.3.6"
 eyre = "0.6.12"
 # We specify very loose version requirements for matrix-sdk to prevent SQLite version conflicts. Any higher-level applications that use matrixbot-ezlogin should specify a concrete matrix-sdk version in their Cargo.toml.
 matrix-sdk = { version = "0", default-features = false, features = ["automatic-room-key-forwarding", "e2e-encryption", "sqlite"] }

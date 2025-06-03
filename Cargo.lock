@@ -2016,8 +2016,9 @@ dependencies = [
 
 [[package]]
 name = "matrixbot-ezlogin"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
+ "async-stream",
  "clap",
  "color-eyre",
  "eyre",
