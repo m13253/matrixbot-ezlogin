@@ -18,10 +18,12 @@ include = [
 [dependencies]
 async-stream = "0.3.6"
 eyre = "0.6.12"
-# We specify very loose version requirements for matrix-sdk to prevent SQLite version conflicts. Any higher-level applications that use matrixbot-ezlogin should specify a concrete matrix-sdk version in their Cargo.toml.
+# We specify very loose version requirements for `matrix-sdk` to prevent SQLite version conflicts. Any higher-level applications that use matrixbot-ezlogin should specify a concrete `matrix-sdk` version in their `Cargo.toml`.
 matrix-sdk = { version = "0", default-features = false, features = ["automatic-room-key-forwarding", "e2e-encryption", "socks", "sqlite"] }
 rand = "0.9.1"
-# We specify very loose version requirements for rusqlite to prevent SQLite version conflicts. Any higher-level applications that use matrixbot-ezlogin should specify a concrete matrix-sdk version in their Cargo.toml in order to resolve to a working rusqlite version.
+# We specify very loose version requirements for `rusqlite` to prevent SQLite version conflicts. Any higher-level applications that use matrixbot-ezlogin should specify a concrete `matrix-sdk` version in their `Cargo.toml` in order to resolve to a working `rusqlite` version.
+#
+# Additionally, `matrix-sdk` is incompatible with `r2d2_sqlite`, use `deadpool-sqlite` if your higher-level application needs SQLite across multiple threads.
 rusqlite = "0"
 rustyline-async = "0.4.6"
 scopeguard = "1.2.0"
@@ -41,9 +43,12 @@ tracing-subscriber = { version = "0.3.19", features = ["env-filter"] }
 
 [features]
 default = ["native-tls"]
-bundled-sqlite = ["matrix-sdk/bundled-sqlite", "rusqlite/bundled"]  # Enables `bundled-sqlite` of `matrix-sdk`
-native-tls = ["matrix-sdk/native-tls"]  # Enables `native-tls` of `matrix-sdk`
-rustls-tls = ["matrix-sdk/rustls-tls"]  # Enables `rustls-tls` of `matrix-sdk`
+# Enables `bundled` of `rusqlite`
+bundled-sqlite = ["matrix-sdk/bundled-sqlite", "rusqlite/bundled"]
+# Enables `native-tls` of `reqwest`
+native-tls = ["matrix-sdk/native-tls"]
+# Enables `rustls-tls` of `reqwest`
+rustls-tls = ["matrix-sdk/rustls-tls"]
 
 [lib]
 name = "matrixbot_ezlogin"

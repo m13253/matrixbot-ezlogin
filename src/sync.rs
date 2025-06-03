@@ -80,7 +80,7 @@ use crate::db::SQLiteHelper;
 ///    }
 ///    ```
 ///
-/// * Or, you can call the convenience methods [`SyncHelper::sync`] or [`SyncHelper::sync_once`], that automatically loads and saves `sync_token` for you.
+/// * Or, you can call the convenience methods [`SyncHelper::sync`], [`SyncHelper::sync_once`], or [`SyncHelper::sync_stream`], that automatically loads and saves `sync_token` for you.
 ///
 /// * Or, you can also mix and match the easy and hard ways in an application.
 #[derive(Clone, Debug)]
@@ -199,7 +199,7 @@ impl SyncHelper {
         Ok(response)
     }
 
-    /// Convenience method that calls [`SyncHelper::process_sync_settings`], [`matrix_sdk::Client::sync_once`], then [`SyncHelper::process_sync_response`] in an infinite loop.
+    /// Convenience method that returns a [`Stream`], which calls [`SyncHelper::process_sync_settings`], [`matrix_sdk::Client::sync_once`], then [`SyncHelper::process_sync_response`] whenever being polled.
     ///
     /// Internally, it actually calls [`matrix_sdk::Client::sync_stream`] to let it manage retry logic.
     pub async fn sync_stream(
