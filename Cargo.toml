@@ -19,7 +19,7 @@ include = [
 async-stream = "0.3.6"
 eyre = "0.6.12"
 # We specify very loose version requirements for matrix-sdk to prevent SQLite version conflicts. Any higher-level applications that use matrixbot-ezlogin should specify a concrete matrix-sdk version in their Cargo.toml.
-matrix-sdk = { version = "0", default-features = false, features = ["automatic-room-key-forwarding", "e2e-encryption", "sqlite"] }
+matrix-sdk = { version = "0", default-features = false, features = ["automatic-room-key-forwarding", "e2e-encryption", "socks", "sqlite"] }
 rand = "0.9.1"
 # We specify very loose version requirements for rusqlite to prevent SQLite version conflicts. Any higher-level applications that use matrixbot-ezlogin should specify a concrete matrix-sdk version in their Cargo.toml in order to resolve to a working rusqlite version.
 rusqlite = "0"
@@ -34,7 +34,7 @@ version-compare = "0.2.0"
 [dev-dependencies]
 clap = { version = "4.5.39", features = ["derive"] }
 color-eyre = "0.6.5"
-matrix-sdk = { version = "0.11.0", default-features = false, features = ["automatic-room-key-forwarding", "e2e-encryption", "sqlite"] }
+matrix-sdk = { version = "0.11.0", default-features = false, features = ["automatic-room-key-forwarding", "e2e-encryption", "socks", "sqlite"] }
 tokio = { version = "1.45.1", features = ["full"] }
 tracing-error = "0.2.1"
 tracing-subscriber = { version = "0.3.19", features = ["env-filter"] }
