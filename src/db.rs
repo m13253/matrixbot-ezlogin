@@ -2,7 +2,7 @@ use std::ops::{Deref, DerefMut};
 use std::path::Path;
 use std::sync::Once;
 
-use color_eyre::eyre::{Result, WrapErr, bail};
+use eyre::{Result, WrapErr, bail};
 use rusqlite::OpenFlags;
 use tracing::info;
 

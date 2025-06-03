@@ -1,6 +1,6 @@
 [package]
 name = "matrixbot-ezlogin"
-version = "0.2.7"
+version = "0.3.0"
 edition = "2024"
 description = "I wrote the login and E2EE bootstrap code for Matrix bots so you don’t have to."
 readme = "Readme.md"
@@ -16,9 +16,9 @@ include = [
 ]
 
 [dependencies]
-color-eyre = "0.6.4"
+eyre = "0.6.12"
 # We specify very loose version requirements for matrix-sdk to prevent SQLite version conflicts. Any higher-level applications that use matrixbot-ezlogin should specify a concrete matrix-sdk version in their Cargo.toml.
-matrix-sdk = { version = "0", features = ["e2e-encryption"] }
+matrix-sdk = { version = "0", default-features = false, features = ["automatic-room-key-forwarding", "e2e-encryption", "sqlite"] }
 rand = "0.9.1"
 # We specify very loose version requirements for rusqlite to prevent SQLite version conflicts. Any higher-level applications that use matrixbot-ezlogin should specify a concrete matrix-sdk version in their Cargo.toml in order to resolve to a working rusqlite version.
 rusqlite = "0"
@@ -26,19 +26,23 @@ rustyline-async = "0.4.6"
 scopeguard = "1.2.0"
 serde_json = "1.0.140"
 tokio = { version = "1.45.1", features = ["fs", "sync", "rt"] }
-tokio-stream = "0.1.17"
+tokio-stream = { version = "0.1.17", default-features = false }
 tracing = "0.1.41"
 version-compare = "0.2.0"
 
 [dev-dependencies]
 clap = { version = "4.5.39", features = ["derive"] }
-matrix-sdk = { version = "0.11.0", features = ["e2e-encryption"] }
+color-eyre = "0.6.5"
+matrix-sdk = { version = "0.11.0", default-features = false, features = ["automatic-room-key-forwarding", "e2e-encryption", "sqlite"] }
 tokio = { version = "1.45.1", features = ["full"] }
 tracing-error = "0.2.1"
 tracing-subscriber = { version = "0.3.19", features = ["env-filter"] }
 
 [features]
-bundled-sqlite = ["matrix-sdk/bundled-sqlite", "rusqlite/bundled"]
+default = ["native-tls"]
+bundled-sqlite = ["matrix-sdk/bundled-sqlite", "rusqlite/bundled"]  # Enables `bundled-sqlite` of `matrix-sdk`
+native-tls = ["matrix-sdk/native-tls"]  # Enables `native-tls` of `matrix-sdk`
+rustls-tls = ["matrix-sdk/rustls-tls"]  # Enables `rustls-tls` of `matrix-sdk`
 
 [lib]
 name = "matrixbot_ezlogin"

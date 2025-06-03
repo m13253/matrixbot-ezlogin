@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use color_eyre::eyre::{Result, bail};
+use eyre::{Result, bail};
 use matrix_sdk::Client;
 use tracing::instrument;
 

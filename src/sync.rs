@@ -2,7 +2,7 @@ use std::path::Path;
 use std::sync::Arc;
 use std::sync::Mutex;
 
-use color_eyre::eyre::Result;
+use eyre::Result;
 use matrix_sdk::config::SyncSettings;
 use matrix_sdk::sync::SyncResponse;
 use matrix_sdk::{Client, LoopCtrl};

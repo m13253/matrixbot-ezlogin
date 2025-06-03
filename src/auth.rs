@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use color_eyre::eyre::{OptionExt, Result, bail};
+use eyre::{OptionExt, Result, bail};
 use matrix_sdk::authentication::matrix::MatrixSession;
 use matrix_sdk::encryption::{
     BackupDownloadStrategy, CrossSigningResetAuthType, EncryptionSettings,
