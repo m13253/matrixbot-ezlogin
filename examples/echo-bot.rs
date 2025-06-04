@@ -122,7 +122,7 @@ async fn run(data_dir: &Path) -> Result<()> {
     client.add_event_handler(on_message);
     client.add_event_handler(on_sticker);
     client.add_event_handler(on_utd);
-    // By the way, if you need to pass any data to your handler, use `client.add_event_handler_context(data)`
+    // By the way, if you need to pass any data to your handlers, use `client.add_event_handler_context(data)`
 
     // Forget rooms that we already left
     let left_rooms = client.left_rooms();
