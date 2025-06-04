@@ -114,7 +114,9 @@ async fn run(data_dir: &Path) -> Result<()> {
     let sync_settings =
         SyncSettings::default().filter(FilterDefinition::with_lazy_loading().into());
 
-    info!("Skipping messages since last logout. May take longer depending on the number of rooms joined.");
+    info!(
+        "Skipping messages since last logout. May take longer depending on the number of rooms joined."
+    );
     sync_helper
         .sync_once(&client, sync_settings.clone())
         .await?;
@@ -173,11 +175,18 @@ async fn on_message(event: OriginalSyncRoomMessageEvent, room: Room, client: Cli
     debug!("room = {}, event = {:?}", room.room_id(), event);
     set_read_marker(room.clone(), event.event_id.clone());
     if room.state() != RoomState::Joined {
-        info!("Ignoring room {}: Current room state is {:?}.", room.room_id(), room.state());
+        info!(
+            "Ignoring room {}: Current room state is {:?}.",
+            room.room_id(),
+            room.state()
+        );
         return;
     }
     if let Some(Relation::Replacement(_)) = event.content.relates_to {
-        info!("Ignoring event {}: This event is an edit operation.", event.event_id);
+        info!(
+            "Ignoring event {}: This event is an edit operation.",
+            event.event_id
+        );
         return;
     }
     if !matches!(
@@ -190,7 +199,11 @@ async fn on_message(event: OriginalSyncRoomMessageEvent, room: Room, client: Cli
             | MessageType::Text(_)
             | MessageType::Video(_)
     ) {
-        info!("Ignoring event {}: Message type is {}.", event.event_id, event.content.msgtype());
+        info!(
+            "Ignoring event {}: Message type is {}.",
+            event.event_id,
+            event.content.msgtype()
+        );
         return;
     }
 
@@ -239,11 +252,18 @@ async fn on_sticker(event: OriginalSyncStickerEvent, room: Room, client: Client)
     debug!("room = {}, event = {:?}", room.room_id(), event);
     set_read_marker(room.clone(), event.event_id.clone());
     if room.state() != RoomState::Joined {
-        info!("Ignoring room {}: Current room state is {:?}.", room.room_id(), room.state());
+        info!(
+            "Ignoring room {}: Current room state is {:?}.",
+            room.room_id(),
+            room.state()
+        );
         return;
     }
     if let Some(Relation::Replacement(_)) = event.content.relates_to {
-        info!("Ignoring event {}: This event is an edit operation.", event.event_id);
+        info!(
+            "Ignoring event {}: This event is an edit operation.",
+            event.event_id
+        );
         return;
     }
 
@@ -295,15 +315,25 @@ async fn on_invite(event: StrippedRoomMemberEvent, room: Room, client: Client) {
     debug!("room = {}, event = {:?}", room.room_id(), event);
     // The user for which a membership applies is represented by the state_key.
     if event.state_key != user_id {
-        info!("Ignoring room {}: Someone else was invited.", room.room_id());
+        info!(
+            "Ignoring room {}: Someone else was invited.",
+            room.room_id()
+        );
         return;
     }
     if !room.is_direct().await.unwrap_or(false) {
-        info!("Ignoring room {}: Room is not a direct chat.", room.room_id());
+        info!(
+            "Ignoring room {}: Room is not a direct chat.",
+            room.room_id()
+        );
         return;
     }
     if room.state() != RoomState::Invited {
-        info!("Ignoring room {}: Current room state is {:?}.", room.room_id(), room.state());
+        info!(
+            "Ignoring room {}: Current room state is {:?}.",
+            room.room_id(),
+            room.state()
+        );
         return;
     }
 
