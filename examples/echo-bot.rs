@@ -16,7 +16,7 @@ use matrix_sdk::ruma::events::room::message::{
 };
 use matrix_sdk::ruma::events::sticker::OriginalSyncStickerEvent;
 use matrix_sdk::{Client, Room, RoomState};
-use tracing::{error, info, instrument, warn};
+use tracing::{debug, error, info, instrument, warn};
 use tracing_subscriber::{EnvFilter, prelude::*};
 
 #[derive(clap::Parser)]
@@ -73,7 +73,7 @@ async fn main() -> Result<()> {
             let mut filter = EnvFilter::new(concat!(
                 "warn,",
                 env!("CARGO_CRATE_NAME"),
-                "=debug,matrixbot_ezlogin=debug"
+                "=debug,matrixbot_ezlogin=info"
             ));
             if let Some(env) = std::env::var_os(EnvFilter::DEFAULT_ENV) {
                 for segment in env.to_string_lossy().split(',') {
@@ -114,7 +114,7 @@ async fn run(data_dir: &Path) -> Result<()> {
     let sync_settings =
         SyncSettings::default().filter(FilterDefinition::with_lazy_loading().into());
 
-    info!("Skipping messages since last logout.");
+    info!("Skipping messages since last logout. May take longer depending on the number of rooms joined.");
     sync_helper
         .sync_once(&client, sync_settings.clone())
         .await?;
@@ -122,6 +122,19 @@ async fn run(data_dir: &Path) -> Result<()> {
     client.add_event_handler(on_message);
     client.add_event_handler(on_sticker);
     client.add_event_handler(on_utd);
+    // By the way, if you need to pass any data to your handler, use `client.add_event_handler_context(data)`
+
+    // Forget rooms that we already left
+    let left_rooms = client.left_rooms();
+    tokio::spawn(async move {
+        for room in left_rooms {
+            info!("Forgetting room {}.", room.room_id());
+            match room.forget().await {
+                Ok(_) => info!("Forgot room {}.", room.room_id()),
+                Err(err) => error!("Failed to forget room {}: {:?}", room.room_id(), err),
+            }
+        }
+    });
 
     info!("Starting sync.");
     sync_helper.sync(&client, sync_settings).await?;
@@ -157,14 +170,14 @@ async fn on_message(event: OriginalSyncRoomMessageEvent, room: Room, client: Cli
         // Ignore my own message
         return;
     }
-    info!("room = {}, event = {:?}", room.room_id(), event);
+    debug!("room = {}, event = {:?}", room.room_id(), event);
     set_read_marker(room.clone(), event.event_id.clone());
     if room.state() != RoomState::Joined {
-        info!("Ignoring: Current room state is {:?}.", room.state());
+        info!("Ignoring room {}: Current room state is {:?}.", room.room_id(), room.state());
         return;
     }
     if let Some(Relation::Replacement(_)) = event.content.relates_to {
-        info!("Ignoring: This event is an edit operation.");
+        info!("Ignoring event {}: This event is an edit operation.", event.event_id);
         return;
     }
     if !matches!(
@@ -177,7 +190,7 @@ async fn on_message(event: OriginalSyncRoomMessageEvent, room: Room, client: Cli
             | MessageType::Text(_)
             | MessageType::Video(_)
     ) {
-        info!("Ignoring: Message type is {}.", event.content.msgtype());
+        info!("Ignoring event {}: Message type is {}.", event.event_id, event.content.msgtype());
         return;
     }
 
@@ -223,14 +236,14 @@ async fn on_sticker(event: OriginalSyncStickerEvent, room: Room, client: Client)
         // Ignore my own message
         return;
     }
-    info!("room = {}, event = {:?}", room.room_id(), event);
+    debug!("room = {}, event = {:?}", room.room_id(), event);
     set_read_marker(room.clone(), event.event_id.clone());
     if room.state() != RoomState::Joined {
-        info!("Ignoring: Current room state is {:?}.", room.state());
+        info!("Ignoring room {}: Current room state is {:?}.", room.room_id(), room.state());
         return;
     }
     if let Some(Relation::Replacement(_)) = event.content.relates_to {
-        info!("Ignoring: This event is an edit operation.");
+        info!("Ignoring event {}: This event is an edit operation.", event.event_id);
         return;
     }
 
@@ -265,8 +278,8 @@ async fn on_sticker(event: OriginalSyncStickerEvent, room: Room, client: Client)
 // https://spec.matrix.org/v1.14/client-server-api/#mroomencrypted
 #[instrument(skip_all)]
 async fn on_utd(event: SyncRoomEncryptedEvent, room: Room) {
-    info!("room = {}, event = {:?}", room.room_id(), event);
-    error!("Unable to decrypt message {}.", event.event_id());
+    debug!("room = {}, event = {:?}", room.room_id(), event);
+    error!("Unable to decrypt event {}.", event.event_id());
 }
 
 // Whenever someone invites me to a room, join if it is a direct chat.
@@ -279,18 +292,18 @@ async fn on_invite(event: StrippedRoomMemberEvent, room: Room, client: Client) {
     if event.sender == user_id {
         return;
     }
-    info!("room = {}, event = {:?}", room.room_id(), event);
+    debug!("room = {}, event = {:?}", room.room_id(), event);
     // The user for which a membership applies is represented by the state_key.
     if event.state_key != user_id {
-        info!("Ignoring: Someone else was invited.");
+        info!("Ignoring room {}: Someone else was invited.", room.room_id());
         return;
     }
     if !room.is_direct().await.unwrap_or(false) {
-        info!("Ignoring: Room is not a direct chat.");
+        info!("Ignoring room {}: Room is not a direct chat.", room.room_id());
         return;
     }
     if room.state() != RoomState::Invited {
-        info!("Ignoring: Current room state is {:?}.", room.state());
+        info!("Ignoring room {}: Current room state is {:?}.", room.room_id(), room.state());
         return;
     }
 
@@ -337,7 +350,7 @@ async fn on_leave(event: SyncRoomMemberEvent, room: Room) {
     ) {
         return;
     }
-    info!("room = {}, event = {:?}", room.room_id(), event);
+    debug!("room = {}, event = {:?}", room.room_id(), event);
 
     match room.state() {
         RoomState::Joined => {
