@@ -1,7 +1,7 @@
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
-use color_eyre::eyre::Result;
+use eyre::Result;
 use matrix_sdk::config::SyncSettings;
 use matrix_sdk::room::Receipts;
 use matrix_sdk::ruma::OwnedEventId;
