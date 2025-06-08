@@ -7,7 +7,7 @@ use matrix_sdk::room::Receipts;
 use matrix_sdk::ruma::OwnedEventId;
 use matrix_sdk::ruma::api::client::filter::FilterDefinition;
 use matrix_sdk::ruma::events::relation::{InReplyTo, Thread};
-use matrix_sdk::ruma::events::room::encrypted::SyncRoomEncryptedEvent;
+use matrix_sdk::ruma::events::room::encrypted::OriginalSyncRoomEncryptedEvent;
 use matrix_sdk::ruma::events::room::member::{
     MembershipState, StrippedRoomMemberEvent, SyncRoomMemberEvent,
 };
@@ -297,7 +297,7 @@ async fn on_sticker(event: OriginalSyncStickerEvent, room: Room, client: Client)
 //
 // https://spec.matrix.org/v1.14/client-server-api/#mroomencrypted
 #[instrument(skip_all)]
-async fn on_utd(event: SyncRoomEncryptedEvent, room: Room) {
+async fn on_utd(event: OriginalSyncRoomEncryptedEvent, room: Room) {
     debug!("room = {}, event = {:?}", room.room_id(), event);
     error!("Unable to decrypt event {}.", event.event_id());
 }
