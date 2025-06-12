@@ -28,8 +28,7 @@ impl SQLiteHelper {
         let conn = rusqlite::Connection::open_with_flags(path, flags)?;
 
         conn.execute_batch(
-            "PRAGMA journal_mode = WAL;
-PRAGMA locking_mode = EXCLUSIVE;
+            "PRAGMA locking_mode = EXCLUSIVE;
 PRAGMA optimize = 0x10002;",
         )?;
 
@@ -38,7 +37,7 @@ PRAGMA optimize = 0x10002;",
             // TODO: If anyone needs programmable detection, transform these ad-hoc errors into named error types.
             .wrap_err("failed to get SQLite version")?;
 
-        PRINT_SQLITE_VERSION_ONCE.call_once(|| info!("SQLite version: {version}"));
+        PRINT_SQLITE_VERSION_ONCE.call_once(|| info!("SQLite version: {}", version));
 
         // We need 3.45.0 for the jsonb() function
         if !version_compare::compare_to(&version, "3.45.0", version_compare::Cmp::Ge)
@@ -46,7 +45,8 @@ PRAGMA optimize = 0x10002;",
         {
             // TODO: If anyone needs programmable detection, transform these ad-hoc errors into named error types.
             bail!(
-                "SQLite version is too old: {version}. Try compiling with --features=bundled-sqlite"
+                "SQLite version is too old: {}. Try compiling with --features=bundled-sqlite",
+                version
             );
         }
 
