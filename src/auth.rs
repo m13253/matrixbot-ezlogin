@@ -214,6 +214,7 @@ async fn build_client(data_dir: &Path, homeserver: &str, passphrase: &str) -> Re
     let mut client_builder = Client::builder()
         .server_name_or_homeserver_url(homeserver)
         .sqlite_store(data_dir, Some(passphrase))
+        .with_enable_share_history_on_invite(true)
         .with_encryption_settings(EncryptionSettings {
             auto_enable_cross_signing: true,
             backup_download_strategy: BackupDownloadStrategy::AfterDecryptionFailure,
