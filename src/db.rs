@@ -29,7 +29,9 @@ impl SQLiteHelper {
 
         conn.execute_batch(
             "PRAGMA locking_mode = EXCLUSIVE;
+PRAGMA journal_mode = WAL;
 PRAGMA journal_size_limit = 0;
+PRAGMA wal_autocheckpoint = 1;
 PRAGMA optimize = 0x10002;",
         )?;
 
