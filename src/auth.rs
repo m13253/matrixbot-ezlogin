@@ -105,7 +105,8 @@ DROP TABLE IF EXISTS sync_token;
 CREATE TABLE matrix_session (id INTEGER PRIMARY KEY CHECK (id = 0), homeserver TEXT NOT NULL, passphrase TEXT NOT NULL, session BLOB NOT NULL);
 CREATE TABLE sync_token (id INTEGER PRIMARY KEY CHECK (id = 0), token TEXT NOT NULL);
 COMMIT;
-PRAGMA optimize;",
+PRAGMA optimize;
+VACUUM;",
     )?;
     delete_data_file!(
         &config.data_dir,
