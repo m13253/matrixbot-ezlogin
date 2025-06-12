@@ -16,7 +16,7 @@ use matrix_sdk::ruma::events::room::message::{
 };
 use matrix_sdk::ruma::events::sticker::OriginalSyncStickerEvent;
 use matrix_sdk::{Client, Room, RoomState};
-use tracing::{debug, error, info, instrument, warn};
+use tracing::{Instrument, debug, error, info, instrument, warn};
 use tracing_subscriber::{EnvFilter, prelude::*};
 
 #[derive(clap::Parser)]
@@ -38,7 +38,7 @@ enum Command {
         #[clap(
             long,
             value_name = "DEVICE_NAME",
-            default_value = "matrixbot-ezlogin/echo-bot",
+            default_value = concat!("matrixbot-ezlogin/", env!("CARGO_BIN_NAME")),
             help = "Device name to use for this session"
         )]
         device_name: String,
@@ -145,24 +145,22 @@ async fn run(data_dir: &Path) -> Result<()> {
 }
 
 #[instrument(skip_all)]
-fn set_read_marker(room: Room, event_id: OwnedEventId) {
-    tokio::spawn(async move {
-        if let Err(err) = room
-            .send_multiple_receipts(
-                Receipts::new()
-                    .fully_read_marker(event_id.clone())
-                    .public_read_receipt(event_id.clone()),
-            )
-            .await
-        {
-            error!(
-                "Failed to set the read marker of room {} to event {}: {:?}",
-                room.room_id(),
-                event_id,
-                err
-            );
-        }
-    });
+async fn set_read_marker(room: Room, event_id: OwnedEventId) {
+    if let Err(err) = room
+        .send_multiple_receipts(
+            Receipts::new()
+                .fully_read_marker(event_id.clone())
+                .public_read_receipt(event_id.clone()),
+        )
+        .await
+    {
+        error!(
+            "Failed to set the read marker of room {} to event {}: {:?}",
+            room.room_id(),
+            event_id,
+            err
+        );
+    }
 }
 
 // https://spec.matrix.org/v1.14/client-server-api/#mroommessage
@@ -173,7 +171,7 @@ async fn on_message(event: OriginalSyncRoomMessageEvent, room: Room, client: Cli
         return;
     }
     debug!("room = {}, event = {:?}", room.room_id(), event);
-    set_read_marker(room.clone(), event.event_id.clone());
+    tokio::spawn(set_read_marker(room.clone(), event.event_id.clone()));
     if room.state() != RoomState::Joined {
         info!(
             "Ignoring room {}: Current room state is {:?}.",
@@ -227,16 +225,19 @@ async fn on_message(event: OriginalSyncRoomMessageEvent, room: Room, client: Cli
         }),
     };
 
-    tokio::spawn(async move {
-        info!("Sending a reply message to {}.", event.event_id);
-        match room.send(reply).await {
-            Ok(_) => info!("Sent a reply message to {}.", event.event_id),
-            Err(err) => error!(
-                "Failed to send a reply message to {}: {:?}",
-                event.event_id, err
-            ),
+    tokio::spawn(
+        async move {
+            info!("Sending a reply message to {}.", event.event_id);
+            match room.send(reply).await {
+                Ok(_) => info!("Sent a reply message to {}.", event.event_id),
+                Err(err) => error!(
+                    "Failed to send a reply message to {}: {:?}",
+                    event.event_id, err
+                ),
+            }
         }
-    });
+        .in_current_span(),
+    );
 }
 
 // Sticker messages aren't of m.room.message types.
@@ -250,7 +251,7 @@ async fn on_sticker(event: OriginalSyncStickerEvent, room: Room, client: Client)
         return;
     }
     debug!("room = {}, event = {:?}", room.room_id(), event);
-    set_read_marker(room.clone(), event.event_id.clone());
+    tokio::spawn(set_read_marker(room.clone(), event.event_id.clone()));
     if room.state() != RoomState::Joined {
         info!(
             "Ignoring room {}: Current room state is {:?}.",
@@ -280,16 +281,19 @@ async fn on_sticker(event: OriginalSyncStickerEvent, room: Room, client: Client)
         }),
     };
 
-    tokio::spawn(async move {
-        info!("Sending a reply sticker to {}.", event.event_id);
-        match room.send(reply).await {
-            Ok(_) => info!("Sent a reply sticker to {}.", event.event_id),
-            Err(err) => error!(
-                "Failed to send a reply sticker to {}: {:?}",
-                event.event_id, err
-            ),
+    tokio::spawn(
+        async move {
+            info!("Sending a reply sticker to {}.", event.event_id);
+            match room.send(reply).await {
+                Ok(_) => info!("Sent a reply sticker to {}.", event.event_id),
+                Err(err) => error!(
+                    "Failed to send a reply sticker to {}: {:?}",
+                    event.event_id, err
+                ),
+            }
         }
-    });
+        .in_current_span(),
+    );
 }
 
 // The SDK documentation said nothing about how to catch unable-to-decrypt (UTD) events.
@@ -337,31 +341,34 @@ async fn on_invite(event: StrippedRoomMemberEvent, room: Room, client: Client) {
         return;
     }
 
-    tokio::spawn(async move {
-        for retry in 0.. {
-            info!("Joining room {}.", room.room_id());
-            match room.join().await {
-                Ok(_) => {
-                    info!("Joined room {}.", room.room_id());
-                    return;
-                }
-                Err(err) => {
-                    // https://github.com/matrix-org/synapse/issues/4345
-                    if retry >= 16 {
-                        error!("Failed to join room {}: {:?}", room.room_id(), err);
-                        error!("Too many retries, giving up after 1 hour.");
+    tokio::spawn(
+        async move {
+            for retry in 0.. {
+                info!("Joining room {}.", room.room_id());
+                match room.join().await {
+                    Ok(_) => {
+                        info!("Joined room {}.", room.room_id());
                         return;
-                    } else {
-                        const BASE: f64 = 1.6180339887498947;
-                        let duration = BASE.powi(retry);
-                        warn!("Failed to join room {}: {:?}", room.room_id(), err);
-                        warn!("This is common, will retry in {:.1}s.", duration);
-                        tokio::time::sleep(Duration::from_secs_f64(duration)).await;
+                    }
+                    Err(err) => {
+                        // https://github.com/matrix-org/synapse/issues/4345
+                        if retry >= 16 {
+                            error!("Failed to join room {}: {:?}", room.room_id(), err);
+                            error!("Too many retries, giving up after 1 hour.");
+                            return;
+                        } else {
+                            const BASE: f64 = 1.6180339887498947;
+                            let duration = BASE.powi(retry);
+                            warn!("Failed to join room {}: {:?}", room.room_id(), err);
+                            warn!("This is common, will retry in {:.1}s.", duration);
+                            tokio::time::sleep(Duration::from_secs_f64(duration)).await;
+                        }
                     }
                 }
             }
         }
-    });
+        .in_current_span(),
+    );
 }
 
 // Whenever someone leaves a room, check whether I am the last remaining member.
@@ -384,29 +391,37 @@ async fn on_leave(event: SyncRoomMemberEvent, room: Room) {
 
     match room.state() {
         RoomState::Joined => {
-            tokio::spawn(async move {
-                if let Err(err) = room.sync_members().await {
-                    warn!("Failed to sync members of {}: {:?}", room.room_id(), err);
-                }
-                // Only I remain in the room.
-                if room.joined_members_count() <= 1 {
-                    info!("Leaving room {}.", room.room_id());
-                    match room.leave().await {
-                        Ok(_) => info!("Left room {}.", room.room_id()),
-                        Err(err) => error!("Failed to leave room {}: {:?}", room.room_id(), err),
+            tokio::spawn(
+                async move {
+                    if let Err(err) = room.sync_members().await {
+                        warn!("Failed to sync members of {}: {:?}", room.room_id(), err);
+                    }
+                    // Only I remain in the room.
+                    if room.joined_members_count() <= 1 {
+                        info!("Leaving room {}.", room.room_id());
+                        match room.leave().await {
+                            Ok(_) => info!("Left room {}.", room.room_id()),
+                            Err(err) => {
+                                error!("Failed to leave room {}: {:?}", room.room_id(), err)
+                            }
+                        }
                     }
                 }
-            });
+                .in_current_span(),
+            );
         }
         RoomState::Banned | RoomState::Left => {
             // Either I successfully left the room, or someone kicked me out.
-            tokio::spawn(async move {
-                info!("Forgetting room {}.", room.room_id());
-                match room.forget().await {
-                    Ok(_) => info!("Forgot room {}.", room.room_id()),
-                    Err(err) => error!("Failed to forget room {}: {:?}", room.room_id(), err),
+            tokio::spawn(
+                async move {
+                    info!("Forgetting room {}.", room.room_id());
+                    match room.forget().await {
+                        Ok(_) => info!("Forgot room {}.", room.room_id()),
+                        Err(err) => error!("Failed to forget room {}: {:?}", room.room_id(), err),
+                    }
                 }
-            });
+                .in_current_span(),
+            );
         }
         _ => (),
     }
