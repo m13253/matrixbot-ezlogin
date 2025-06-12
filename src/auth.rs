@@ -96,17 +96,6 @@ where
     PrintRecoveryKeyReturn: Future<Output = Result<()>>,
 {
     tokio::fs::create_dir_all(&config.data_dir).await?;
-
-    let session_db = SQLiteHelper::open(&config.data_dir.join("matrixbot-ezlogin.sqlite3"), true)?;
-    session_db.execute_batch(
-        "BEGIN TRANSACTION;
-DROP TABLE IF EXISTS matrix_session;
-DROP TABLE IF EXISTS sync_token;
-CREATE TABLE matrix_session (id INTEGER PRIMARY KEY CHECK (id = 0), homeserver TEXT NOT NULL, passphrase TEXT NOT NULL, session BLOB NOT NULL);
-CREATE TABLE sync_token (id INTEGER PRIMARY KEY CHECK (id = 0), token TEXT NOT NULL);
-COMMIT;
-PRAGMA optimize;",
-    )?;
     delete_data_file!(
         &config.data_dir,
         "matrix-sdk-crypto.sqlite3",
@@ -121,7 +110,22 @@ PRAGMA optimize;",
         "matrix-sdk-state.sqlite3-journal",
         "matrix-sdk-state.sqlite3-shm",
         "matrix-sdk-state.sqlite3-wal",
+        "matrixbot-ezlogin.sqlite3",
+        "matrixbot-ezlogin.sqlite3-journal",
+        "matrixbot-ezlogin.sqlite3-shm",
+        "matrixbot-ezlogin.sqlite3-wal",
     );
+
+    let session_db = SQLiteHelper::open(&config.data_dir.join("matrixbot-ezlogin.sqlite3"), true)?;
+    session_db.execute_batch(
+        "BEGIN TRANSACTION;
+DROP TABLE IF EXISTS matrix_session;
+DROP TABLE IF EXISTS sync_token;
+CREATE TABLE matrix_session (id INTEGER PRIMARY KEY CHECK (id = 0), homeserver TEXT NOT NULL, passphrase TEXT NOT NULL, session BLOB NOT NULL);
+CREATE TABLE sync_token (id INTEGER PRIMARY KEY CHECK (id = 0), token TEXT NOT NULL);
+COMMIT;
+PRAGMA optimize;",
+    )?;
 
     info!("Logging into Matrix.");
     let rng = rand::rng();
