@@ -134,15 +134,18 @@ async fn run(data_dir: &Path) -> Result<()> {
 
     // Forget rooms that we already left
     let left_rooms = client.left_rooms();
-    tokio::spawn(async move {
-        for room in left_rooms {
-            info!("Forgetting room {}.", room.room_id());
-            match room.forget().await {
-                Ok(_) => info!("Forgot room {}.", room.room_id()),
-                Err(err) => error!("Failed to forget room {}: {:?}", room.room_id(), err),
+    tokio::spawn(
+        async move {
+            for room in left_rooms {
+                info!("Forgetting room {}.", room.room_id());
+                match room.forget().await {
+                    Ok(_) => info!("Forgot room {}.", room.room_id()),
+                    Err(err) => error!("Failed to forget room {}: {:?}", room.room_id(), err),
+                }
             }
         }
-    });
+        .in_current_span(),
+    );
 
     info!("Starting sync.");
     sync_helper.sync(&client, sync_settings).await?;
