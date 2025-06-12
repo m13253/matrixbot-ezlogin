@@ -105,6 +105,13 @@ async fn main() -> Result<()> {
 async fn run(data_dir: &Path) -> Result<()> {
     let (client, sync_helper) = matrixbot_ezlogin::login(data_dir).await?;
 
+    // Enable event cache to remember old messages.
+    // Can be used with `Room::load_or_fetch_event`.
+    // client.event_cache().subscribe()?;
+
+    // Attach custom data to event handlers.
+    // client.add_event_handler_context(data)
+
     // We don't ignore joining and leaving events happened during downtime.
     client.add_event_handler(on_invite);
     client.add_event_handler(on_leave);
@@ -124,7 +131,6 @@ async fn run(data_dir: &Path) -> Result<()> {
     client.add_event_handler(on_message);
     client.add_event_handler(on_sticker);
     client.add_event_handler(on_utd);
-    // By the way, if you need to pass any data to your handlers, use `client.add_event_handler_context(data)`
 
     // Forget rooms that we already left
     let left_rooms = client.left_rooms();
