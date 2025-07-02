@@ -57,17 +57,27 @@ To experience matrixbot-ezlogin, you can try the provided echo-bot example.
 
    Since matrixbot-ezlogin remembers your authentication, this step requires no human interaction, and can be set to start automatically on computer bootup.
 
-4. Chat with echo-bot.
+4. Remove the unverified registration session.
+
+   The `register_new_matrix_user` program creates an unverified session. This session should be removed to prevent encryption problems.
+
+   Use a Matrix client, for example, [Element](https://matrix.org/ecosystem/clients/element/), to log into your bot account. Use your recovery key when asked.
+
+   Go to settings. In the Sessions tab, sign out of any unverified or unrecognized sessions.
+
+   Finally, sign out of Element.
+
+5. Chat with echo-bot.
 
    Echo-bot responds to every direct message, but not group chats.
 
    Send something to echo-bot in a DM, and see if it echoes back.
 
-5. (If anything goes wrong,) reset the cryptographic identity.
+6. (If anything goes wrong,) reset the cryptographic identity.
 
    First, delete echo-bot’s database directory.
 
-   Then use a Matrix client, for example, [Element](https://matrix.org/ecosystem/clients/element/), to log into your bot account.
+   Log into your bot account on [Element](https://matrix.org/ecosystem/clients/element/).
 
    Go to settings. In the Sessions tab, sign out of all other sessions.
 
