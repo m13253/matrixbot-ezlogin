@@ -77,15 +77,17 @@ To experience matrixbot-ezlogin, you can try the provided echo-bot example.
 
    First, delete echo-bot’s database directory.
 
-   Log into your bot account on [Element](https://matrix.org/ecosystem/clients/element/).
+   Log into your bot account on Element. Choose “Reset cryptographic identity” if your recovery key no longer works.
 
    Go to settings. In the Sessions tab, sign out of all other sessions.
 
-   In the Encryption tab, click “Reset cryptographic identity”.
+   In the Encryption tab, click “Reset cryptographic identity” again to ensure really no data carry over.
 
-   After resetting, close and reopen Element. In the Encryption tab, make sure “Allow key storage” is turned off.
+   After resetting, close and reopen Element.
 
-   Finally, sign out of Element.
+   In the Encryption tab, turn off “Allow key storage” if it was automatically turned on.
+
+   Finally, sign out of Element. Do not enable backup when asked.
 
    This should clear the E2EE-related data.
 
