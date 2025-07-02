@@ -59,7 +59,7 @@ To experience matrixbot-ezlogin, you can try the provided echo-bot example.
 
 4. Remove the unverified registration session.
 
-   The `register_new_matrix_user` program creates an unverified session. This session should be removed to prevent encryption problems.
+   The `register_new_matrix_user` program mentioned above created an unverified session. This session should be removed to prevent encryption problems.
 
    Use a Matrix client, for example, [Element](https://matrix.org/ecosystem/clients/element/), to log into your bot account. Use your recovery key when asked.
 
