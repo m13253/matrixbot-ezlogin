@@ -57,9 +57,9 @@ To experience matrixbot-ezlogin, you can try the provided echo-bot example.
 
    Since matrixbot-ezlogin remembers your authentication, this step requires no human interaction, and can be set to start automatically on computer bootup.
 
-4. Remove the unverified registration session.
+4. Remove any unverified registration session.
 
-   The `register_new_matrix_user` program mentioned above created an unverified session. This session should be removed to prevent encryption problems.
+   The `register_new_matrix_user` program mentioned above may have created an unverified session. This session should be removed to prevent encryption problems.
 
    Use a Matrix client, for example, [Element](https://matrix.org/ecosystem/clients/element/), to log into your bot account. Use your recovery key when asked.
 
