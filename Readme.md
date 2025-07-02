@@ -20,6 +20,10 @@ To experience matrixbot-ezlogin, you can try the provided echo-bot example.
 
    I suggest registering your bot on [a self-hosted Synapse server](https://element-hq.github.io/synapse/latest/setup/installation.html), because you can easily hit the login rate limit if you want to explore all different features.
 
+   ```
+   $ register_new_matrix_user --no-admin -c homeserver.yaml -t bot
+   ```
+
    To loosen the rate limit of Synapse, use the [`rc_login`](https://element-hq.github.io/synapse/latest/usage/configuration/config_documentation.html#rc_login) option.
 
    The bot account has to use password authentication. Multi-factor authentication and single sign-on are unsupported, as they can’t function unattended.
