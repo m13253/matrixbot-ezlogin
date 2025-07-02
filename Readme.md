@@ -61,7 +61,7 @@ To experience matrixbot-ezlogin, you can try the provided echo-bot example.
 
    The `register_new_matrix_user` program mentioned above may have created an unverified session. This session should be removed to prevent encryption problems.
 
-   Use a Matrix client, for example, [Element](https://matrix.org/ecosystem/clients/element/), to log into your bot account. Use your recovery key when asked.
+   Use a Matrix client, for example, [Element](https://matrix.org/ecosystem/clients/element/), to log into your bot account. Type in your recovery key when asked.
 
    Go to settings. In the Sessions tab, sign out of any unverified or unrecognized sessions.
 
