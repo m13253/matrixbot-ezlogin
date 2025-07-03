@@ -63,7 +63,7 @@ To experience matrixbot-ezlogin, you can try the provided echo-bot example.
 
    Use a Matrix client, for example, [Element](https://matrix.org/ecosystem/clients/element/), to log into your bot account. Type in your recovery key when asked.
 
-   Go to settings. In the Sessions tab, sign out of any unverified or unrecognized sessions.
+   Go to settings. In the Sessions tab, sign out any unverified or unrecognized sessions.
 
    Finally, sign out of Element.
 
