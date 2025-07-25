@@ -343,7 +343,6 @@ async fn on_invite(event: StrippedRoomMemberEvent, room: Room, client: Client) {
     if event.sender == user_id {
         return;
     }
-    debug!("room = {}, event = {:?}", room.room_id(), event);
     // The user for which a membership applies is represented by the state_key.
     if event.state_key != user_id {
         info!(
