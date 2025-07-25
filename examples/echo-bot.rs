@@ -325,9 +325,8 @@ async fn on_sticker(event: OriginalSyncStickerEvent, room: Room, client: Client)
 #[instrument(skip_all)]
 async fn on_utd(event: OriginalSyncRoomEncryptedEvent, room: Room) {
     error!(
-        "Unable to decrypt room {}, event {}.",
-        room.room_id(),
-        event.event_id
+        "Unable to decrypt: {:?}",
+        event.into_full_event(room.room_id().to_owned())
     );
 }
 
