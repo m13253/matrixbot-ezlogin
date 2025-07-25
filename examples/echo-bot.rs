@@ -17,7 +17,7 @@ use matrix_sdk::ruma::events::room::message::{
 };
 use matrix_sdk::ruma::events::sticker::OriginalSyncStickerEvent;
 use matrix_sdk::{Client, Room, RoomState};
-use tracing::{Instrument, debug, error, info, instrument, warn};
+use tracing::{Instrument, error, info, instrument, warn};
 use tracing_subscriber::{EnvFilter, prelude::*};
 
 #[derive(clap::Parser)]
