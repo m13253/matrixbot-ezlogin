@@ -326,7 +326,7 @@ async fn on_sticker(event: OriginalSyncStickerEvent, room: Room, client: Client)
 #[instrument(skip_all)]
 async fn on_utd(event: OriginalSyncRoomEncryptedEvent, room: Room, raw_event: RawEvent) {
     error!(
-        "Unable to decrypt room {}, event {} ({})",
+        "Unable to decrypt room {}, event {} ({}).",
         room.room_id(),
         event.event_id,
         raw_event.get()
@@ -346,26 +346,52 @@ async fn on_invite(event: StrippedRoomMemberEvent, room: Room, client: Client) {
     // The user for which a membership applies is represented by the state_key.
     if event.state_key != user_id {
         info!(
-            "Ignoring room {}: Someone else was invited.",
-            room.room_id()
-        );
-        return;
-    }
-    if !room.is_direct().await.unwrap_or(false) {
-        info!(
-            "Ignoring room {}: Room is not a direct chat.",
-            room.room_id()
+            "Ignoring invitation from {} to room {}: Someone else ({}) was invited.",
+            event.sender,
+            room.room_id(),
+            event.state_key
         );
         return;
     }
     if room.state() != RoomState::Invited {
         info!(
-            "Ignoring room {}: Current room state is {:?}.",
+            "Ignoring invitation from {} to room {}: Current room state is {:?}.",
+            event.sender,
             room.room_id(),
             room.state()
         );
         return;
     }
+    if !room.is_direct().await.unwrap_or(false) {
+        info!(
+            "Rejecting invitation from {} to room {}: Room is not a direct chat.",
+            event.sender,
+            room.room_id()
+        );
+        tokio::spawn(
+            async move {
+                match room.leave().await {
+                    Ok(_) => {
+                        info!("Rejected room {}.", room.room_id());
+                    }
+                    Err(err) => {
+                        error!(
+                            "Failed to reject room invitation {}: {}",
+                            room.room_id(),
+                            err
+                        );
+                    }
+                }
+            }
+            .in_current_span(),
+        );
+        return;
+    }
+    info!(
+        "Accepting invitation from {} to room {}.",
+        event.sender,
+        room.room_id()
+    );
 
     tokio::spawn(
         async move {
