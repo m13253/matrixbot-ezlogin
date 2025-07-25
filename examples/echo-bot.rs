@@ -140,7 +140,7 @@ async fn run(data_dir: &Path) -> Result<()> {
                 info!("Forgetting room {}.", room.room_id());
                 match room.forget().await {
                     Ok(_) => info!("Forgot room {}.", room.room_id()),
-                    Err(err) => error!("Failed to forget room {}: {:?}", room.room_id(), err),
+                    Err(err) => error!("Failed to forget room {}: {}", room.room_id(), err),
                 }
             }
         }
@@ -164,7 +164,7 @@ async fn set_read_marker(room: Room, event_id: OwnedEventId) {
         .await
     {
         error!(
-            "Failed to set the read marker of room {} to event {}: {:?}",
+            "Failed to set the read marker of room {} to event {}: {}",
             room.room_id(),
             event_id,
             err
@@ -179,21 +179,17 @@ async fn on_message(event: OriginalSyncRoomMessageEvent, room: Room, client: Cli
         // Ignore my own message
         return;
     }
-    debug!("room = {}, event = {:?}", room.room_id(), event);
     tokio::spawn(set_read_marker(room.clone(), event.event_id.clone()));
     if room.state() != RoomState::Joined {
         info!(
-            "Ignoring room {}: Current room state is {:?}.",
+            "Ignoring room {}, event {}: Current room state is {:?}.",
             room.room_id(),
+            event.event_id,
             room.state()
         );
         return;
     }
     if let Some(Relation::Replacement(_)) = event.content.relates_to {
-        info!(
-            "Ignoring event {}: This event is an edit operation.",
-            event.event_id
-        );
         return;
     }
     if !matches!(
@@ -207,7 +203,8 @@ async fn on_message(event: OriginalSyncRoomMessageEvent, room: Room, client: Cli
             | MessageType::Video(_)
     ) {
         info!(
-            "Ignoring event {}: Message type is {}.",
+            "Ignoring room {}, event {}: Message type is {}.",
+            room.room_id(),
             event.event_id,
             event.content.msgtype()
         );
@@ -236,12 +233,22 @@ async fn on_message(event: OriginalSyncRoomMessageEvent, room: Room, client: Cli
 
     tokio::spawn(
         async move {
-            info!("Sending a reply message to {}.", event.event_id);
+            info!(
+                "Sending a reply message to room {}, event {}.",
+                room.room_id(),
+                event.event_id
+            );
             match room.send(reply).await {
-                Ok(_) => info!("Sent a reply message to {}.", event.event_id),
+                Ok(_) => info!(
+                    "Sent a reply message to room {}, event {}.",
+                    room.room_id(),
+                    event.event_id
+                ),
                 Err(err) => error!(
-                    "Failed to send a reply message to {}: {:?}",
-                    event.event_id, err
+                    "Failed to send a reply message to room {}, event {}: {}",
+                    room.room_id(),
+                    event.event_id,
+                    err
                 ),
             }
         }
@@ -259,21 +266,17 @@ async fn on_sticker(event: OriginalSyncStickerEvent, room: Room, client: Client)
         // Ignore my own message
         return;
     }
-    debug!("room = {}, event = {:?}", room.room_id(), event);
     tokio::spawn(set_read_marker(room.clone(), event.event_id.clone()));
     if room.state() != RoomState::Joined {
         info!(
-            "Ignoring room {}: Current room state is {:?}.",
+            "Ignoring room {}, event {}: Current room state is {:?}.",
             room.room_id(),
+            event.event_id,
             room.state()
         );
         return;
     }
     if let Some(Relation::Replacement(_)) = event.content.relates_to {
-        info!(
-            "Ignoring event {}: This event is an edit operation.",
-            event.event_id
-        );
         return;
     }
 
@@ -292,12 +295,22 @@ async fn on_sticker(event: OriginalSyncStickerEvent, room: Room, client: Client)
 
     tokio::spawn(
         async move {
-            info!("Sending a reply sticker to {}.", event.event_id);
+            info!(
+                "Sending a reply sticker to room {}, event {}.",
+                room.room_id(),
+                event.event_id
+            );
             match room.send(reply).await {
-                Ok(_) => info!("Sent a reply sticker to {}.", event.event_id),
+                Ok(_) => info!(
+                    "Sent a reply sticker to room {}, event {}.",
+                    room.room_id(),
+                    event.event_id
+                ),
                 Err(err) => error!(
-                    "Failed to send a reply sticker to {}: {:?}",
-                    event.event_id, err
+                    "Failed to send a reply sticker to room {}, event {}: {}",
+                    room.room_id(),
+                    event.event_id,
+                    err
                 ),
             }
         }
@@ -311,8 +324,11 @@ async fn on_sticker(event: OriginalSyncStickerEvent, room: Room, client: Client)
 // https://spec.matrix.org/v1.14/client-server-api/#mroomencrypted
 #[instrument(skip_all)]
 async fn on_utd(event: OriginalSyncRoomEncryptedEvent, room: Room) {
-    debug!("room = {}, event = {:?}", room.room_id(), event);
-    error!("Unable to decrypt event {}.", event.event_id);
+    error!(
+        "Unable to decrypt room {}, event {}.",
+        room.room_id(),
+        event.event_id
+    );
 }
 
 // Whenever someone invites me to a room, join if it is a direct chat.
@@ -362,13 +378,13 @@ async fn on_invite(event: StrippedRoomMemberEvent, room: Room, client: Client) {
                     Err(err) => {
                         // https://github.com/matrix-org/synapse/issues/4345
                         if retry >= 16 {
-                            error!("Failed to join room {}: {:?}", room.room_id(), err);
+                            error!("Failed to join room {}: {}", room.room_id(), err);
                             error!("Too many retries, giving up after 1 hour.");
                             return;
                         } else {
                             const BASE: f64 = 1.6180339887498947;
                             let duration = BASE.powi(retry);
-                            warn!("Failed to join room {}: {:?}", room.room_id(), err);
+                            warn!("Failed to join room {}: {}", room.room_id(), err);
                             warn!("This is common, will retry in {:.1}s.", duration);
                             tokio::time::sleep(Duration::from_secs_f64(duration)).await;
                         }
@@ -396,14 +412,13 @@ async fn on_leave(event: SyncRoomMemberEvent, room: Room) {
     ) {
         return;
     }
-    debug!("room = {}, event = {:?}", room.room_id(), event);
 
     match room.state() {
         RoomState::Joined => {
             tokio::spawn(
                 async move {
                     if let Err(err) = room.sync_members().await {
-                        warn!("Failed to sync members of {}: {:?}", room.room_id(), err);
+                        warn!("Failed to sync members of {}: {}", room.room_id(), err);
                     }
                     // Only I remain in the room.
                     if room.joined_members_count() <= 1 {
@@ -411,7 +426,7 @@ async fn on_leave(event: SyncRoomMemberEvent, room: Room) {
                         match room.leave().await {
                             Ok(_) => info!("Left room {}.", room.room_id()),
                             Err(err) => {
-                                error!("Failed to leave room {}: {:?}", room.room_id(), err)
+                                error!("Failed to leave room {}: {}", room.room_id(), err)
                             }
                         }
                     }
@@ -426,7 +441,7 @@ async fn on_leave(event: SyncRoomMemberEvent, room: Room) {
                     info!("Forgetting room {}.", room.room_id());
                     match room.forget().await {
                         Ok(_) => info!("Forgot room {}.", room.room_id()),
-                        Err(err) => error!("Failed to forget room {}: {:?}", room.room_id(), err),
+                        Err(err) => error!("Failed to forget room {}: {}", room.room_id(), err),
                     }
                 }
                 .in_current_span(),
