@@ -3,6 +3,7 @@ use std::time::Duration;
 
 use eyre::Result;
 use matrix_sdk::config::SyncSettings;
+use matrix_sdk::event_handler::RawEvent;
 use matrix_sdk::room::Receipts;
 use matrix_sdk::ruma::OwnedEventId;
 use matrix_sdk::ruma::api::client::filter::FilterDefinition;
@@ -323,10 +324,12 @@ async fn on_sticker(event: OriginalSyncStickerEvent, room: Room, client: Client)
 //
 // https://spec.matrix.org/v1.14/client-server-api/#mroomencrypted
 #[instrument(skip_all)]
-async fn on_utd(event: OriginalSyncRoomEncryptedEvent, room: Room) {
+async fn on_utd(event: OriginalSyncRoomEncryptedEvent, room: Room, raw_event: RawEvent) {
     error!(
-        "Unable to decrypt: {:?}",
-        event.into_full_event(room.room_id().to_owned())
+        "Unable to decrypt room {}, event {} ({})",
+        room.room_id(),
+        event.event_id,
+        raw_event.get()
     );
 }
 
