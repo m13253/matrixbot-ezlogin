@@ -34,3 +34,9 @@ pub use auth::{SetupConfig, login, logout, setup};
 pub use duplex_log::DuplexLog;
 pub use interactive::setup_interactive;
 pub use sync::SyncHelper;
+
+/// Re-export Matrix SDK, which helps dealing with version conflicts.
+pub use matrix_sdk;
+
+/// Re-export Rusqlite, which helps dealing with version conflicts.
+pub use rusqlite;
