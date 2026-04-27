@@ -2259,7 +2259,7 @@ dependencies = [
 
 [[package]]
 name = "matrixbot-ezlogin"
-version = "0.3.8"
+version = "0.3.9"
 dependencies = [
  "async-stream",
  "clap",

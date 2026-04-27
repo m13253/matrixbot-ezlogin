@@ -1,10 +1,10 @@
 [package]
 name = "matrixbot-ezlogin"
-version = "0.3.8"
+version = "0.3.9"
 edition = "2024"
 description = "I wrote the login and E2EE bootstrap code for Matrix bots so you don’t have to."
 readme = "Readme.md"
-repository = "https://github.com/m13253/matrixbot-ezlogin"
+repository = "https://codeberg.org/m13253/matrixbot-ezlogin"
 license = "MIT"
 keywords = ["matrix", "matrix-chat", "chat", "messaging", "ruma"]
 categories = ["network-programming", "authentication"]
