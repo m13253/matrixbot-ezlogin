@@ -7,7 +7,7 @@ use matrix_sdk::encryption::{
 };
 use matrix_sdk::ruma::api::client::uiaa;
 use matrix_sdk::{AuthSession, Client};
-use rand::Rng;
+use rand::RngExt;
 use rusqlite::OptionalExtension;
 use tracing::{info, instrument};
 
