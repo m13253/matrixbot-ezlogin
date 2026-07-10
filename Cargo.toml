@@ -1,6 +1,6 @@
 [package]
 name = "matrixbot-ezlogin"
-version = "0.3.9"
+version = "0.4.0"
 edition = "2024"
 description = "I wrote the login and E2EE bootstrap code for Matrix bots so you don’t have to."
 readme = "Readme.md"
@@ -19,16 +19,16 @@ include = [
 async-stream = "0.3.6"
 eyre = "0.6.12"
 # We specify very loose version requirements for `matrix-sdk` to prevent SQLite version conflicts. Any higher-level applications that use matrixbot-ezlogin should specify a concrete `matrix-sdk` version in their `Cargo.toml`.
-matrix-sdk = { version = ">=0.12", default-features = false, features = ["automatic-room-key-forwarding", "e2e-encryption", "socks", "sqlite"] }
-rand = "0.10.1"
+matrix-sdk = { version = ">=0.18", default-features = false, features = ["automatic-room-key-forwarding", "e2e-encryption", "socks", "sqlite"] }
+rand = "0.10.2"
 # We specify very loose version requirements for `rusqlite` to prevent SQLite version conflicts. Any higher-level applications that use matrixbot-ezlogin should specify a concrete `matrix-sdk` version in their `Cargo.toml` in order to resolve to a working `rusqlite` version.
 #
 # Additionally, `matrix-sdk` is incompatible with `r2d2_sqlite`, use `deadpool-sqlite` if your higher-level application needs SQLite across multiple threads.
 rusqlite = ">=0.33"
 rustyline-async = "0.4.9"
 scopeguard = "1.2.0"
-serde_json = "1.0.149"
-tokio = { version = "1.52.2", features = ["fs", "sync", "rt"] }
+serde_json = "1.0.150"
+tokio = { version = "1.52.3", features = ["fs", "sync", "rt"] }
 tokio-stream = { version = "0.1.18", default-features = false }
 tracing = "0.1.44"
 version-compare = "0.2.1"
@@ -36,19 +36,14 @@ version-compare = "0.2.1"
 [dev-dependencies]
 clap = { version = "4.6.1", features = ["derive"] }
 color-eyre = "0.6.5"
-matrix-sdk = { version = "0.16.0", default-features = false, features = ["automatic-room-key-forwarding", "e2e-encryption", "socks", "sqlite"] }
-tokio = { version = "1.52.2", features = ["full"] }
+matrix-sdk = { version = "0.18.0", default-features = false, features = ["automatic-room-key-forwarding", "e2e-encryption", "socks", "sqlite"] }
+tokio = { version = "1.52.3", features = ["full"] }
 tracing-error = "0.2.1"
 tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
 
 [features]
-default = ["native-tls"]
 # Enables `bundled` of `rusqlite`
 bundled-sqlite = ["matrix-sdk/bundled-sqlite", "rusqlite/bundled"]
-# Enables `native-tls` of `reqwest`
-native-tls = ["matrix-sdk/native-tls"]
-# Enables `rustls-tls` of `reqwest`
-rustls-tls = ["matrix-sdk/rustls-tls"]
 
 [lib]
 name = "matrixbot_ezlogin"

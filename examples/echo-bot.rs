@@ -7,7 +7,7 @@ use matrix_sdk::event_handler::RawEvent;
 use matrix_sdk::room::Receipts;
 use matrix_sdk::ruma::OwnedEventId;
 use matrix_sdk::ruma::api::client::filter::FilterDefinition;
-use matrix_sdk::ruma::events::relation::{InReplyTo, Thread};
+use matrix_sdk::ruma::events::relation::{Reply, Thread};
 use matrix_sdk::ruma::events::room::encrypted::OriginalSyncRoomEncryptedEvent;
 use matrix_sdk::ruma::events::room::member::{
     MembershipState, StrippedRoomMemberEvent, SyncRoomMemberEvent,
@@ -227,9 +227,9 @@ async fn on_message(event: OriginalSyncRoomMessageEvent, room: Room, client: Cli
             thread.event_id,
             event.event_id.to_owned(),
         ))),
-        _ => Some(Relation::Reply {
-            in_reply_to: InReplyTo::new(event.event_id.to_owned()),
-        }),
+        _ => Some(Relation::Reply(Reply::with_event_id(
+            event.event_id.to_owned(),
+        ))),
     };
 
     tokio::spawn(
@@ -289,9 +289,9 @@ async fn on_sticker(event: OriginalSyncStickerEvent, room: Room, client: Client)
             thread.event_id,
             event.event_id.to_owned(),
         ))),
-        _ => Some(Relation::Reply {
-            in_reply_to: InReplyTo::new(event.event_id.to_owned()),
-        }),
+        _ => Some(Relation::Reply(Reply::with_event_id(
+            event.event_id.to_owned(),
+        ))),
     };
 
     tokio::spawn(
